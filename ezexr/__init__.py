@@ -23,7 +23,7 @@ def imread(filename):
 
     # Read the three color channels as 32-bit floats
     FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
-    (R,G,B) = [ array.array('f', f.channel(Chan, FLOAT)).tolist() for Chan in ("R", "G", "B") ]
+    R, G, B = [ np.fromstring(f.channel(x, FLOAT), dtype=np.float32) for x in ['R', 'G', 'B'] ]
     return np.dstack((R, G, B)).reshape(h, w, 3)
 
 
