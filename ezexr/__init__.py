@@ -17,10 +17,14 @@ def imread(filename):
     # Open the input file
     f = OpenEXR.InputFile(filename)
 
+    # Compute the size
+    dw = f.header()['dataWindow']
+    h, w = dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1
+
     # Read the three color channels as 32-bit floats
     FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
     (R,G,B) = [ array.array('f', f.channel(Chan, FLOAT)).tolist() for Chan in ("R", "G", "B") ]
-    return np.dstack((R, G, B))
+    return np.dstack((R, G, B)).reshape(h, w, 3)
 
 
 def imwrite(filename, arr):
