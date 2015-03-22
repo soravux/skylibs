@@ -33,8 +33,10 @@ def imwrite(filename, arr):
     TODO
     """
     h, w, d = arr.shape
+
     # Convert to strings
-    (R, G, B) = [ array.array('f', Chan).tostring() for Chan in (arr[:,:,1], arr[:,:,2], arr[:,:,3]) ]
+    R, G, B = [ x.tobytes() for x in [arr[:,:,0], arr[:,:,1], arr[:,:,2]] ]
+    #(R, G, B) = [ array.array('f', Chan).tostring() for Chan in (arr[:,:,0], arr[:,:,1], arr[:,:,2]) ]
 
     # Write the three color channels to the output file
     out = OpenEXR.OutputFile(filename, OpenEXR.Header(h, w))
