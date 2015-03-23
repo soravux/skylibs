@@ -89,15 +89,15 @@ class EnvironmentMap:
         # I haven't included it here because it may mask potential problems...
         self.setBackgroundColor(self.backgroundColor, valid)
 
-    def setBackgroundColor(self, color, mask):
-        """Sets the area defined by mask to color."""
-        assert mask.dtype == 'bool', "`mask` must be a boolean array."
-        assert mask.shape[:2] == self.data.shape[:2], "`mask` must be the same size as the EnvironmentMap."
+    def setBackgroundColor(self, color, valid):
+        """Sets the area defined by valid to color."""
+        assert valid.dtype == 'bool', "`valid` must be a boolean array."
+        assert valid.shape[:2] == self.data.shape[:2], "`valid` must be the same size as the EnvironmentMap."
 
         self.backgroundColor = np.asarray(color)
 
         for c in range(self.data.shape[2]):
-            self.data[:,:,c][mask] = self.backgroundColor[c]
+            self.data[:,:,c][np.invert(valid)] = self.backgroundColor[c]
 
     def convertTo(self, targetFormat, targetDim=None):
         """
