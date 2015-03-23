@@ -10,9 +10,12 @@ import numpy as np
 def imread(filename):
     """
     Read an .exr image and returns a numpy matrix.
-    TODO:
-      - Support Alpha channel (and others)
-      - Support Greyscale
+
+.. todo::
+
+    * Support Alpha channel (and others)
+    * Support Greyscale
+
     """
     # Open the input file
     f = OpenEXR.InputFile(filename)
@@ -30,7 +33,11 @@ def imread(filename):
 def imwrite(filename, arr):
     """
     Write an .exr file from an input <arr>ay.
-    TODO
+
+.. todo::
+
+      Test it
+
     """
     h, w, d = arr.shape
 
