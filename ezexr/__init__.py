@@ -47,7 +47,7 @@ def imwrite(filename, arr):
 
     # Write the three color channels to the output file
     out = OpenEXR.OutputFile(filename, OpenEXR.Header(h, w))
-    out.writePixels({'R' : R, 'G' : G, 'B' : G })
+    out.writePixels({'R' : R, 'G' : G, 'B' : B })
 
 
 imsave = imwrite
