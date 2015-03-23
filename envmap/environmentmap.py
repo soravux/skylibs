@@ -4,6 +4,7 @@ from scipy.interpolate import RegularGridInterpolator
 
 SUPPORTED_FORMATS = [
     'angular',
+    'skyangular',
     'latlong',
 ]
 
@@ -53,6 +54,7 @@ class EnvironmentMap:
         """Returns the (x, y, z) coordinates in the [-1, 1] interval."""
         func = {
             'angular': self.angular2world,
+            'skyangular': self.skyangular2world,
             'latlong': self.latlong2world,
         }.get(self.format_)
         return func(u, v)
@@ -61,6 +63,7 @@ class EnvironmentMap:
         """Returns the (u, v) coordinates (in the [0, 1] interval)."""
         func = {
             'angular': self.world2angular,
+            'skyangular': self.world2skyangular,
             'latlong': self.world2latlong,
         }.get(self.format_)
         return func(x, y, z)
@@ -80,7 +83,7 @@ class EnvironmentMap:
 
         data = np.zeros((cols.size, rows.size, self.data.shape[2]))
         for c in range(self.data.shape[2]):
-            intmesh = RegularGridInterpolator(coords, self.data[:,:,c])
+            intmesh = RegularGridInterpolator(coords, self.data[:,:,c], bounds_error=False)
             interpdata = intmesh(target)
             data[:,:,c] = interpdata.reshape(data.shape[0], data.shape[1])
         self.data = data
@@ -125,8 +128,8 @@ class EnvironmentMap:
     def world2latlong(self, x, y, z):
         """Get the (u, v) coordinates of the point defined by (x, y, z) for
         a latitude-longitude map."""
-        u = 1 + (1/pi) * np.arctan2(x, -z)
-        v = (1/pi) * np.arccos(y)
+        u = 1 + (1/np.pi) * np.arctan2(x, -z)
+        v = (1/np.pi) * np.arccos(y)
         # because we want [0,1] interval
         u = u/2;
         return u, v
@@ -172,3 +175,33 @@ class EnvironmentMap:
         valid = r <= .25 # .5**2
 
         return x, y, z, valid
+
+    def skyangular2world(self, u, v):
+        """Get the (x, y, z, valid) coordinates of the point defined by (u, v)
+        for a sky angular map."""
+        # skyangular -> world
+        thetaAngular = np.arctan2(-2*v+1, 2*u-1) # azimuth
+        phiAngular = np.pi/2*np.sqrt((2*u-1)**2 + (2*v-1)**2) # zenith
+
+        x = np.sin(phiAngular)*np.cos(thetaAngular)
+        z = np.sin(phiAngular)*np.sin(thetaAngular)
+        y = np.cos(phiAngular)
+
+        r = (u-0.5)**2 + (v-0.5)**2
+        valid = r <= .25 # .5^2
+
+        return x, y, z, valid
+
+    def world2skyangular(self, x, y, z):
+        """Get the (u, v) coordinates of the point defined by (x, y, z) for
+        a sky angular map."""
+        # world -> skyangular
+        thetaAngular = np.arctan2(x, z) # azimuth
+        phiAngular = np.arctan2(np.sqrt(x**2+z**2), y) # zenith
+
+        r = phiAngular/(np.pi/2);
+
+        u = r*np.sin(thetaAngular)/2+1/2
+        v = 1/2-r*np.cos(thetaAngular)/2
+
+        return u, v
