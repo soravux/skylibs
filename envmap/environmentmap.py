@@ -1,5 +1,6 @@
 import numpy as np
-from scipy.interpolate import griddata
+from scipy.interpolate import RegularGridInterpolator
+
 
 SUPPORTED_FORMATS = [
     'angular',
@@ -29,7 +30,7 @@ class EnvironmentMap:
             "Unknown format: {}".format(format_))
 
         self.data = im
-        self.format_ = format_
+        self.format_ = format_.lower()
         self.backgroundColor = np.array([0, 0, 0])
 
     def imageCoordinates(self):
@@ -74,11 +75,14 @@ class EnvironmentMap:
         cols, rows = self.imageCoordinates()
         cols = cols[0, :]
         rows = rows[:, 0]
-        coords = np.hstack(cols.T, rows)
+        coords = (cols, rows)
+        target = np.vstack((u.flatten(), v.flatten())).T
 
-        data = np.array((u.size, v.size, self.data.shape[2]))
+        data = np.zeros((cols.size, rows.size, self.data.shape[2]))
         for c in range(self.data.shape[2]):
-            data = griddata(coords, self.data[:,:,c], (u, v), method=method)
+            intmesh = RegularGridInterpolator(coords, self.data[:,:,c])
+            interpdata = intmesh(target)
+            data[:,:,c] = interpdata.reshape(data.shape[0], data.shape[1])
         self.data = data
 
         # In original: valid & ~isnan(data)...
@@ -88,11 +92,12 @@ class EnvironmentMap:
     def setBackgroundColor(self, color, mask):
         """Sets the area defined by mask to color."""
         assert mask.dtype == 'bool', "`mask` must be a boolean array."
-        assert mask.shape == self.data.shape, "`mask` must be the same size as the EnvironmentMap."
+        assert mask.shape[:2] == self.data.shape[:2], "`mask` must be the same size as the EnvironmentMap."
 
         self.backgroundColor = np.asarray(color)
 
-        self.data[mask] = self.backgroundColor
+        for c in range(self.data.shape[2]):
+            self.data[:,:,c][mask] = self.backgroundColor[c]
 
     def convertTo(self, targetFormat, targetDim=None):
         """
