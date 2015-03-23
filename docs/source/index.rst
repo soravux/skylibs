@@ -6,18 +6,33 @@
 Welcome to skylib's documentation!
 ==================================
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
+
+List of TODOs
+-------------
+
+.. todolist::
+
+EXR I/O helper
+--------------
 
 .. automodule:: ezexr
    :members:
    :undoc-members:
 
+EnvironmentMap Class
+--------------------
+
 .. automodule:: envmap
    :members:
+
+.. autoclass:: envmap.EnvironmentMap
+   :members:
    :undoc-members:
+   :private-members:
+   :special-members:
+   :exclude-members: __dict__,__weakref__,__module__
 
 
 Indices and tables
