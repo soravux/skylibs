@@ -42,7 +42,8 @@ def imwrite(filename, arr):
     h, w, d = arr.shape
 
     # Convert to strings
-    R, G, B = [ x.tobytes() for x in [arr[:,:,0], arr[:,:,1], arr[:,:,2]] ]
+    # TODO: Investigate the side-effects of the float cast
+    R, G, B = [ x.astype('float32').tobytes() for x in [arr[:,:,0], arr[:,:,1], arr[:,:,2]] ]
     #(R, G, B) = [ array.array('f', Chan).tostring() for Chan in (arr[:,:,0], arr[:,:,1], arr[:,:,2]) ]
 
     # Write the three color channels to the output file
