@@ -68,7 +68,7 @@ def imwrite(filename, arr, **params):
     #(R, G, B) = [ array.array('f', Chan).tostring() for Chan in (arr[:,:,0], arr[:,:,1], arr[:,:,2]) ]
 
 
-    outHeader = OpenEXR.Header(h, w)
+    outHeader = OpenEXR.Header(w, h)
     outHeader['compression'] = imath_compression        # Apply compression
     for channel in outHeader['channels']:               # Apply pixel format
         outHeader['channels'][channel] = Imath.Channel(imath_pixformat, 1, 1)
