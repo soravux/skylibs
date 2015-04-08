@@ -96,9 +96,18 @@ class EnvironmentMap:
         rows = rows[:, 0]
         target = np.vstack((v.flatten()*self.data.shape[0], u.flatten()*self.data.shape[1]))
 
+        # Repeat the first and last rows/columns for interpolation purposes
+        h, w, d = self.data.shape
+        source = np.empty((h + 2, w + 2, d))
+        source[1:-1, 1:-1] = self.data
+        source[0,1:-1] = self.data[0,:]; source[0,0] = self.data[0,0]; source[0,-1] = self.data[0,-1]
+        source[-1,1:-1] = self.data[-1,:]; source[-1,0] = self.data[-1,0]; source[-1,-1] = self.data[-1,-1]
+        source[1:-1,0] = self.data[:,0]
+        source[1:-1,-1] = self.data[:,-1]
+
         data = np.zeros((u.shape[0], u.shape[1], self.data.shape[2]))
         for c in range(self.data.shape[2]):
-            interpdata = map_coordinates(self.data[:,:,c], target, cval=np.nan)
+            interpdata = map_coordinates(source[:,:,c], target, cval=np.nan)
             data[:,:,c] = interpdata.reshape(data.shape[0], data.shape[1])
         self.data = data
 
@@ -121,9 +130,9 @@ class EnvironmentMap:
         Convert to another format.
 
         :param targetFormat: Target format.
-        :param targetDim: Target dimensions.
+        :param targetDim: Target dimension.
         :type targetFormat: string
-        :type targetFormat: float, array
+        :type targetFormat: integer
 
 .. todo::
 
