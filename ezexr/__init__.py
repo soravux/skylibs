@@ -22,7 +22,7 @@ def imread(filename):
 
     # Compute the size
     dw = f.header()['dataWindow']
-    h, w = dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1
+    h, w = dw.max.y - dw.min.y + 1, dw.max.x - dw.min.x + 1
 
     # Read the three color channels as 32-bit floats
     FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
