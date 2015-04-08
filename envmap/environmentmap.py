@@ -72,7 +72,7 @@ class EnvironmentMap:
         """"Interpolate to get the desired pixel values.
 .. todo::
 
-    Is griddata the best option for this?
+    Is RegularGridInterpolator the best option for this?
 
 """
         cols, rows = self.imageCoordinates()
@@ -131,7 +131,7 @@ class EnvironmentMap:
         u = 1 + (1/np.pi) * np.arctan2(x, -z)
         v = (1/np.pi) * np.arccos(y)
         # because we want [0,1] interval
-        u = u/2;
+        u = u/2
         return u, v
 
     def world2angular(self, x, y, z):
@@ -165,7 +165,7 @@ class EnvironmentMap:
         for an angular map."""
         # angular -> world
         thetaAngular = np.arctan2(-2*v+1, 2*u-1)
-        phiAngular = np.pi*sqrt((2*u-1)**2 + (2*v-1)**2)
+        phiAngular = np.pi*np.sqrt((2*u-1)**2 + (2*v-1)**2)
 
         x = np.sin(phiAngular)*np.cos(thetaAngular)
         y = np.sin(phiAngular)*np.sin(thetaAngular)
