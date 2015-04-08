@@ -1,11 +1,14 @@
 import numpy as np
-from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage.interpolation import map_coordinates
+
+import ezexr
 
 
 SUPPORTED_FORMATS = [
     'angular',
     'skyangular',
     'latlong',
+    'cube', # TODO: Not done!
 ]
 
 eps = 2**-52
@@ -30,9 +33,27 @@ class EnvironmentMap:
         assert format_.lower() in SUPPORTED_FORMATS, (
             "Unknown format: {}".format(format_))
 
-        self.data = im
         self.format_ = format_.lower()
         self.backgroundColor = np.array([0, 0, 0])
+
+        if isinstance(im, str):
+            # We received the filename
+            # TODO: fallback to standard imread
+            self.data = ezexr.imread(im)
+        elif isinstance(im, int):
+            # We received a single scalar
+            if self.format_ == 'latlong':
+                self.data = np.zeros((im, im*2))
+            elif self.format_ == 'cube':
+                self.data = np.zeros((im, round(3/4*im)))
+            else:
+                self.data = np.zeros((im, im))
+        elif type(im).__module__ == np.__name__:
+            # We received a numpy array
+            self.data = np.asarray(im, dtype='double')
+        else:
+            raise Exception('Could not understand input. Please prove a '
+                            'filename, a size or an image.')
 
     def imageCoordinates(self):
         """Returns the (u, v) coordinates for each pixel center."""
@@ -69,26 +90,19 @@ class EnvironmentMap:
         return func(x, y, z)
 
     def interpolate(self, u, v, valid, method='linear'):
-        """"Interpolate to get the desired pixel values.
-.. todo::
-
-    Is RegularGridInterpolator the best option for this?
-
-"""
+        """"Interpolate to get the desired pixel values."""
         cols, rows = self.imageCoordinates()
         cols = cols[0, :]
         rows = rows[:, 0]
-        coords = (cols, rows)
-        target = np.vstack((u.flatten(), v.flatten())).T
+        target = np.vstack((v.flatten()*self.data.shape[0], u.flatten()*self.data.shape[1]))
 
-        data = np.zeros((cols.size, rows.size, self.data.shape[2]))
+        data = np.zeros((u.shape[0], u.shape[1], self.data.shape[2]))
         for c in range(self.data.shape[2]):
-            intmesh = RegularGridInterpolator(coords, self.data[:,:,c], bounds_error=False)
-            interpdata = intmesh(target)
+            interpdata = map_coordinates(self.data[:,:,c], target, cval=np.nan)
             data[:,:,c] = interpdata.reshape(data.shape[0], data.shape[1])
         self.data = data
 
-        # In original: valid & ~isnan(data)...
+        # In original: valid &= ~isnan(data)...
         # I haven't included it here because it may mask potential problems...
         self.setBackgroundColor(self.backgroundColor, valid)
 
@@ -119,7 +133,11 @@ class EnvironmentMap:
         assert targetFormat.lower() in SUPPORTED_FORMATS, (
             "Unknown format: {}".format(targetFormat))
 
-        eTmp = EnvironmentMap(np.zeros(self.data.shape), targetFormat)
+        if not targetDim:
+            # By default, number of rows
+            targetDim = self.data.shape[0]
+
+        eTmp = EnvironmentMap(targetDim, targetFormat)
         dx, dy, dz, valid = eTmp.worldCoordinates()
         u, v = self.world2image(dx, dy, dz)
         self.format_ = targetFormat
