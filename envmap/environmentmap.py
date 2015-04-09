@@ -8,6 +8,7 @@ SUPPORTED_FORMATS = [
     'angular',
     'skyangular',
     'latlong',
+    'sphere',
     'cube', # TODO: Not done!
 ]
 
@@ -55,6 +56,11 @@ class EnvironmentMap:
             raise Exception('Could not understand input. Please prove a '
                             'filename, a size or an image.')
 
+        # Ensure size is valid
+        if self.format_ in ['sphere', 'angular', 'skysphere', 'skyangular']:
+            assert self.data.shape[0] == self.data.shape[1], (
+                "Sphere/Angular formats must have the same width/height")
+
     def imageCoordinates(self):
         """Returns the (u, v) coordinates for each pixel center."""
         cols = np.linspace(0, 1, self.data.shape[1]*2 + 1)
@@ -77,6 +83,7 @@ class EnvironmentMap:
             'angular': self.angular2world,
             'skyangular': self.skyangular2world,
             'latlong': self.latlong2world,
+            'sphere': self.sphere2world,
         }.get(self.format_)
         return func(u, v)
 
@@ -86,6 +93,7 @@ class EnvironmentMap:
             'angular': self.world2angular,
             'skyangular': self.world2skyangular,
             'latlong': self.world2latlong,
+            'sphere': self.world2sphere,
         }.get(self.format_)
         return func(x, y, z)
 
@@ -230,5 +238,34 @@ class EnvironmentMap:
 
         u = r*np.sin(thetaAngular)/2+1/2
         v = 1/2-r*np.cos(thetaAngular)/2
+
+        return u, v
+
+    def sphere2world(self, u, v):
+        """Get the (x, y, z, valid) coordinates of the point defined by (u, v)
+        for the sphere map."""
+        u = u*2 - 1
+        v = v*2 - 1
+
+        # sphere -> world
+        r = sqrt(u((2 + v**2)
+        theta = np.arctan2(u, -v)
+
+        phi = zeros(size(theta))
+        valid = r<=1
+        phi(valid) = 2.*asin(r(valid))
+
+        x = np.sin(phi)*np.sin(theta)
+        y = np.sin(phi)*np.cos(theta)
+        z = -np.cos(phi)
+        return x, y, z valid
+
+    def world2sphere(self, x, y, z):
+        # world -> sphere
+        denum = (2*sqrt(x**2 + y**2)) + eps
+        r = np.sin(.5*np.arccos(-z)) ./ denum
+
+        u = .5 + r*x
+        v = .5 - r*y
 
         return u, v
