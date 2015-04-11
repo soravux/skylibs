@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 from scipy import misc as scipy_io
-#import ezexr
+import ezexr
 
 
 def imwrite(data, filename):
