@@ -72,6 +72,7 @@ def _hdr_read(filename):
         rgb[...,0] = np.ldexp(rgbe[...,0], rgbe[...,3] - 128)
         rgb[...,1] = np.ldexp(rgbe[...,1], rgbe[...,3] - 128)
         rgb[...,2] = np.ldexp(rgbe[...,2], rgbe[...,3] - 128)
+        # TODO: This will rescale all the values to be in [0, 1]. Find a way to retrieve the original values.
         rgb /= rgb.max()
 
     return rgb
