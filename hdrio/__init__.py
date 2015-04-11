@@ -2,7 +2,11 @@ import os
 
 import numpy as np
 from scipy import misc as scipy_io
-import ezexr
+
+try:
+    import ezexr
+except ImportError as e:
+    print("Could not import exr module:", e)
 
 
 def imwrite(data, filename):
