@@ -248,22 +248,22 @@ class EnvironmentMap:
         v = v*2 - 1
 
         # sphere -> world
-        r = sqrt(u((2 + v**2)
+        r = sqrt(u**2 + v**2)
         theta = np.arctan2(u, -v)
 
-        phi = zeros(size(theta))
-        valid = r<=1
-        phi(valid) = 2.*asin(r(valid))
+        phi = np.zeros(theta.shape)
+        valid = r <= 1
+        phi[valid] = 2*np.arcsin(r[valid])
 
         x = np.sin(phi)*np.sin(theta)
         y = np.sin(phi)*np.cos(theta)
         z = -np.cos(phi)
-        return x, y, z valid
+        return x, y, z, valid
 
     def world2sphere(self, x, y, z):
         # world -> sphere
-        denum = (2*sqrt(x**2 + y**2)) + eps
-        r = np.sin(.5*np.arccos(-z)) ./ denum
+        denum = (2*np.sqrt(x**2 + y**2)) + eps
+        r = np.sin(.5*np.arccos(-z)) / denum
 
         u = .5 + r*x
         v = .5 - r*y
