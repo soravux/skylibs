@@ -57,7 +57,6 @@ def _hdr_write(filename, data):
 def _hdr_read(filename):
     with open(filename, "rb") as f:
         MAGIC = f.readline().strip()
-        print(MAGIC, len(MAGIC))
         assert MAGIC == b'#?RADIANCE', "Wrong header found in {}".format(filename)
 
         comments = b""

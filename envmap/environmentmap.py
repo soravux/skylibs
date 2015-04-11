@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.ndimage.interpolation import map_coordinates
 
-import ezexr
+from hdrio import imread
 
 
 SUPPORTED_FORMATS = [
@@ -39,8 +39,7 @@ class EnvironmentMap:
 
         if isinstance(im, str):
             # We received the filename
-            # TODO: fallback to standard imread
-            self.data = ezexr.imread(im)
+            self.data = imread(im)
         elif isinstance(im, int):
             # We received a single scalar
             if self.format_ == 'latlong':
