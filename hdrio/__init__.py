@@ -55,6 +55,12 @@ def _hdr_write(filename, data):
 
 
 def _hdr_read(filename):
+    """Read hdr file.
+
+.. TODO:
+   
+    * Support axis other than -Y +X
+"""
     with open(filename, "rb") as f:
         MAGIC = f.readline().strip()
         assert MAGIC == b'#?RADIANCE', "Wrong header found in {}".format(filename)
@@ -72,9 +78,9 @@ def _hdr_read(filename):
 
         rgbe = np.fromfile(f, dtype=np.uint8).reshape((height, width, 4))
         rgb = np.empty((height, width, 3), dtype=np.float)
-        rgb[...,0] = np.ldexp(rgbe[...,0], rgbe[...,3] - 128)
-        rgb[...,1] = np.ldexp(rgbe[...,1], rgbe[...,3] - 128)
-        rgb[...,2] = np.ldexp(rgbe[...,2], rgbe[...,3] - 128)
+        rgb[...,0] = np.ldexp(rgbe[...,0], rgbe[...,3].astype('int') - 128)
+        rgb[...,1] = np.ldexp(rgbe[...,1], rgbe[...,3].astype('int') - 128)
+        rgb[...,2] = np.ldexp(rgbe[...,2], rgbe[...,3].astype('int') - 128)
         # TODO: This will rescale all the values to be in [0, 1]. Find a way to retrieve the original values.
         rgb /= rgb.max()
 
