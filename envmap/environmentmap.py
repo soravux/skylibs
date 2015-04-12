@@ -114,7 +114,7 @@ class EnvironmentMap:
 
         data = np.zeros((u.shape[0], u.shape[1], self.data.shape[2]))
         for c in range(self.data.shape[2]):
-            interpdata = map_coordinates(source[:,:,c], target, cval=np.nan)
+            interpdata = map_coordinates(source[:,:,c], target, cval=np.nan, order=0)
             data[:,:,c] = interpdata.reshape(data.shape[0], data.shape[1])
         self.data = data
 
