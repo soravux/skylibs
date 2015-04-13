@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import logical_and as land, logical_or as lor
 from scipy.ndimage.interpolation import map_coordinates
 
 from hdrio import imread
@@ -83,6 +84,7 @@ class EnvironmentMap:
             'skyangular': self.skyangular2world,
             'latlong': self.latlong2world,
             'sphere': self.sphere2world,
+            'cube': self.cube2world,
         }.get(self.format_)
         return func(u, v)
 
@@ -93,6 +95,7 @@ class EnvironmentMap:
             'skyangular': self.world2skyangular,
             'latlong': self.world2latlong,
             'sphere': self.world2sphere,
+            'cube': self.world2cube,
         }.get(self.format_)
         return func(x, y, z)
 
@@ -158,6 +161,9 @@ class EnvironmentMap:
         u, v = self.world2image(dx, dy, dz)
         self.format_ = targetFormat
         self.interpolate(u, v, valid)
+
+    def rotate(self, format, input_):
+        pass
 
     def world2latlong(self, x, y, z):
         """Get the (u, v) coordinates of the point defined by (x, y, z) for
@@ -268,3 +274,100 @@ class EnvironmentMap:
         v = .5 - r*y
 
         return u, v
+
+    def world2cube(self, x, y, z):
+        # world -> cube
+        u = np.zeros(x.shape)
+        v = np.zeros(x.shape)
+
+        # forward
+        indForward = np.nonzero(land(land(z <= 0, z <= -np.abs(x)), z <= -np.abs(y)))
+        u[indForward] = 1.5 - 0.5 * x[indForward] / z[indForward]
+        v[indForward] = 1.5 + 0.5 * y[indForward] / z[indForward]
+
+        # backward
+        indBackward = np.nonzero(land(land(z >= 0,  z >= np.abs(x)),  z >= np.abs(y)))
+        u[indBackward] = 1.5 + 0.5 * x[indBackward] / z[indBackward]
+        v[indBackward] = 3.5 + 0.5 * y[indBackward] / z[indBackward]
+
+        # down
+        indDown = np.nonzero(land(land(y <= 0,  y <= -np.abs(x)),  y <= -np.abs(z)))
+        u[indDown] = 1.5 - 0.5 * x[indDown] / y[indDown]
+        v[indDown] = 2.5 - 0.5 * z[indDown] / y[indDown]
+
+        # up
+        indUp = np.nonzero(land(land(y >= 0,  y >= np.abs(x)),  y >= np.abs(z)))
+        u[indUp] = 1.5 + 0.5 * x[indUp] / y[indUp]
+        v[indUp] = 0.5 - 0.5 * z[indUp] / y[indUp]
+
+        # left
+        indLeft = np.nonzero(land(land(x <= 0,  x <= -np.abs(y)),  x <= -np.abs(z)))
+        u[indLeft] = 0.5 + 0.5 * z[indLeft] / x[indLeft]
+        v[indLeft] = 1.5 + 0.5 * y[indLeft] / x[indLeft]
+
+        # right
+        indRight = np.nonzero(land(land(x >= 0,  x >= np.abs(y)),  x >= np.abs(z)))
+        u[indRight] = 2.5 + 0.5 * z[indRight] / x[indRight]
+        v[indRight] = 1.5 - 0.5 * y[indRight] / x[indRight]
+
+        # bring back in the [0,1] intervals
+        u = u/3
+        v = v/4
+        return u, v
+
+    def cube2world(self, u, v):
+        # [u,v] = meshgrid(0:3/(3*dim-1):3, 0:4/(4*dim-1):4);
+        # u and v are in the [0,1] interval, so put them back to [0,3]
+        # and [0,4]
+        u = u*3
+        v = v*4
+
+        x = np.zeros(u.shape); y = np.zeros(u.shape); z = np.zeros(u.shape)
+        valid = np.zeros(u.shape, dtype='bool')
+
+        # up
+        indUp = land(land(u >= 1, u < 2), v < 1)
+        x[indUp] = (u[indUp] - 1.5) * 2
+        y[indUp] = 1
+        z[indUp] = (v[indUp] - 0.5) * -2
+
+        # left
+        indLeft = land(land(u < 1, v >= 1), v < 2)
+        x[indLeft] = -1
+        y[indLeft] = (v[indLeft] - 1.5) * -2
+        z[indLeft] = (u[indLeft] - 0.5) * -2
+
+        # forward
+        indForward = land(land(land(u >= 1, u < 2), v >= 1), v < 2)
+        x[indForward] = (u[indForward] - 1.5) * 2
+        y[indForward] = (v[indForward] - 1.5) * -2
+        z[indForward] = -1
+
+        # right
+        indRight = land(land(u >= 2, v >= 1), v < 2)
+        x[indRight] = 1
+        y[indRight] = (v[indRight] - 1.5) * -2
+        z[indRight] = (u[indRight] - 2.5) * 2
+
+        # down
+        indDown = land(land(land(u >= 1, u < 2), v >= 2), v < 3)
+        x[indDown] = (u[indDown] - 1.5) * 2
+        y[indDown] = -1
+        z[indDown] = (v[indDown] - 2.5) * 2
+
+        # backward
+        indBackward = land(land(u >= 1, u < 2), v >= 3)
+        x[indBackward] = (u[indBackward] - 1.5) * 2
+        y[indBackward] = (v[indBackward] - 3.5) * 2
+        z[indBackward] = 1
+
+        # normalize
+        norm = np.sqrt(x**2 + y**2 + z**2)#np.hypot(x, y, z) #sqrt(x.^2 + y.^2 + z.^2);
+        x = x / norm;
+        y = y / norm;
+        z = z / norm;
+
+        # return valid indices
+        valid_ind = lor(lor(lor(indUp, indLeft), lor(indForward, indRight)), lor(indDown, indBackward))
+        valid[valid_ind] = 1;
+        return x, y, z, valid
