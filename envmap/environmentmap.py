@@ -69,7 +69,7 @@ class EnvironmentMap:
         cols = cols[1::2]
         rows = rows[1::2]
 
-        return np.meshgrid(cols, rows)
+        return [d.astype('float32') for d in np.meshgrid(cols, rows)]
 
     def worldCoordinates(self):
         """Returns the (x, y, z) world coordinates for each pixel center."""
@@ -101,9 +101,6 @@ class EnvironmentMap:
 
     def interpolate(self, u, v, valid, method='linear'):
         """"Interpolate to get the desired pixel values."""
-        cols, rows = self.imageCoordinates()
-        cols = cols[0, :]
-        rows = rows[:, 0]
         target = np.vstack((v.flatten()*self.data.shape[0], u.flatten()*self.data.shape[1]))
 
         # Repeat the first and last rows/columns for interpolation purposes
@@ -117,7 +114,7 @@ class EnvironmentMap:
 
         data = np.zeros((u.shape[0], u.shape[1], self.data.shape[2]))
         for c in range(self.data.shape[2]):
-            interpdata = map_coordinates(source[:,:,c], target, cval=np.nan, order=0)
+            interpdata = map_coordinates(source[:,:,c], target, cval=np.nan, order=1)
             data[:,:,c] = interpdata.reshape(data.shape[0], data.shape[1])
         self.data = data
 
