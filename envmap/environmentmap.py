@@ -13,6 +13,13 @@ SUPPORTED_FORMATS = [
     'cube', # TODO: Not done!
 ]
 
+ROTATION_FORMATS = [
+    'DCM',
+    'EA###',    # TODO
+    'EV',       # TODO
+    'Q',        # TODO
+]
+
 eps = 2**-52
 
 
@@ -160,7 +167,36 @@ class EnvironmentMap:
         self.interpolate(u, v, valid)
 
     def rotate(self, format, input_):
-        pass
+        """
+        Rotate the environment map.
+
+        :param format: Rotation type
+        :param input: Rotation information (currently only 3x3 numpy matrix)
+        """
+        assert format.upper() in ROTATION_FORMATS, "Unknown rotation type '{}'".format(format)
+        dx, dy, dz, valid = self.worldCoordinates()
+
+        ptR = np.dot(input_, np.vstack((dx.flatten(), dy.flatten(), dz.flatten())))
+        dx, dy, dz = ptR[0].reshape(dx.shape), ptR[1].reshape(dy.shape), ptR[2].reshape(dz.shape)
+
+        dx[dx < -1.] = -1.
+        dy[dy < -1.] = -1.
+        dz[dz < -1.] = -1.
+        dx[dx > 1.] = 1.
+        dy[dy > 1.] = 1.
+        dz[dz > 1.] = 1.
+
+        u, v = self.world2image(dx, dy, dz)
+        self.interpolate(u, v, valid)
+
+    def intensity(self):
+        """
+        Returns intensity-version of the environment map
+        """
+        assert len(self.data.shape) == 3 and self.data.shape[2] == 3, "Image already in intensity-only!"
+        return EnvironmentMap(0.299 * self.data[...,0] + 0.587 * self.data[...,1] + 0.114 * self.data[...,2],
+                              self.format_)
+
 
     def world2latlong(self, x, y, z):
         """Get the (u, v) coordinates of the point defined by (x, y, z) for
