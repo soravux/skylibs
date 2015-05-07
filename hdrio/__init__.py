@@ -13,7 +13,7 @@ def imwrite(data, filename):
     _, ext = os.path.splitext(filename.lower())
     if ext == '.exr':
         ezexr.imwrite(filename, data)
-    elif ext == '.hdr':
+    elif ext in ['.hdr', '.pic']:
         _hdr_write(filename, data)
     else:
         scipy_io.imsave(filename, data)
@@ -27,7 +27,7 @@ def imread(filename):
     _, ext = os.path.splitext(filename.lower())
     if ext == '.exr':
         return ezexr.imread(filename)
-    elif ext == '.hdr':
+    elif ext in ['.hdr', '.pic']:
         return _hdr_read(filename)
     else:
         return scipy_io.imread(filename)
