@@ -84,11 +84,18 @@ class SkyProbe:
         return self.envmap.data
 
     @property
-    def pictureLDR(self):
-        m = 700
-        return np.clip(m * self.envmap.data / (1. + self.envmap.data), 0., 255.).astype('uint8')
-
-    @property
     def sun_position(self):
         return sunutils.sunPosFromEnvmap(self.envmap)
 
+    # ToneMapping operators. Returns unsigned 8-bit result.
+    def tmoReinhard2002(self, scale=700):
+        """Performs the Reinhard 2002 operator as described in
+        Reinhard, Erik, et al. "Photographic tone reproduction for digital
+        images." ACM Transactions on Graphics (TOG). Vol. 21. No. 3. ACM, 2002.
+        """
+        return np.clip(scale * self.envmap.data / (1. + self.envmap.data), 0., 255.).astype('uint8')
+
+    def tmoGamma(self, gamma, scale=1):
+        """Performs a gamma compression: scale*V^(1/gamma) ."""
+        data = self.envmap.data - self.envmap.data.min()
+        return np.clip(scale * np.power(data, 1./gamma), 0., 255.).astype('uint8')
