@@ -1,6 +1,6 @@
 import numpy as np
 from numpy import logical_and as land, logical_or as lor
-from scipy.ndimage.interpolation import map_coordinates
+from scipy.ndimage.interpolation import map_coordinates, zoom
 
 from hdrio import imread
 
@@ -188,6 +188,27 @@ class EnvironmentMap:
 
         u, v = self.world2image(dx, dy, dz)
         self.interpolate(u, v, valid)
+
+    def resize(self, targetSize):
+        """
+        Resize the current environnement map to targetSize.
+        targetSize can be a tuple or a single number, in which case the same factor is assumed
+        for both u and v.
+        If 0 < targetSize < 1, treat it as a ratio
+        If targetSize > 1, treat it as new dimensions to use
+        """
+        if not isinstance(targetSize, tuple):
+            targetSize = (targetSize, targetSize)
+
+        _size = []
+        for i in range(2):
+            _size[i] = targetSize[i] / self.data.shape[i] if targetSize[i] > 1. else targetSize[i]
+
+        if len(self.data.shape) > 2:
+            _size.append(1.0)   # To ensure we do not "scale" the color axis...
+
+        self.data = scipy.ndimage.interpolation.zoom(self.data, _size, order=1)
+        
 
     def intensity(self):
         """
