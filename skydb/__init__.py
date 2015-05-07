@@ -2,8 +2,12 @@ import os
 from os import listdir
 from os.path import abspath, isdir, join
 import fnmatch
+import datetime
+
+import numpy as np
 
 from envmap import EnvironmentMap
+from hdrtools import sunutils
 
 
 class SkyDB:
@@ -23,12 +27,19 @@ class SkyInterval:
         """Represent an interval, usually a day.
         The path should contain folders named by HHMMSS (ie. 102639 for 10h26 39s).
         """
+        self.path =  path
         matches = []
         for root, dirnames, filenames in os.walk(path):
             for filename in fnmatch.filter(filenames, 'envmap.exr'):
                 matches.append(join(root, filename))
 
         self.probes = list(map(SkyProbe, matches))
+        self.reftimes = [datetime.datetime(year=1, 
+                                            month=1, 
+                                            day=1,
+                                            hour=int(probe.time[:2]),
+                                            minute=int(probe.time[2:4]),
+                                            second=int(probe.time[4:6])) for probe in self.probes]
         if len(self.probes) > 0:
             self.sun_visibility = sum(1 for x in self.probes if x.sun_visible) / len(self.probes)
         else:
@@ -37,6 +48,17 @@ class SkyInterval:
     @property
     def date(self):
         return os.path.normpath(self.path).split(os.sep)[-1]
+
+    def closestProbe(self, hours, minutes=0, seconds=0):
+        """
+        Return the SkyProbe object closest to the requested time.
+        TODO : check for day change (if we ask for 6:00 AM and the probe sequence
+            only begins at 7:00 PM and ends at 9:00 PM, then 9:00 PM is actually
+            closer than 7:00 PM and will be wrongly selected; not a big deal but...)
+        """
+        cmpdate = datetime.datetime(year=1, month=1, day=1, hour=hours, minute=minutes, second=seconds)
+        idx = np.argmin([np.abs((cmpdate - t).total_seconds()) for t in self.reftimes])
+        return self.probes[idx]
 
 
 class SkyProbe:
@@ -56,4 +78,17 @@ class SkyProbe:
     @property
     def time(self):
         return os.path.normpath(self.path).split(os.sep)[-2]
+
+    @property
+    def pictureHDR(self):
+        return self.envmap.data
+
+    @property
+    def pictureLDR(self):
+        m = 700
+        return np.clip(m * self.envmap.data / (1. + self.envmap.data), 0., 255.).astype('uint8')
+
+    @property
+    def sun_position(self):
+        return sunutils.sunPosFromEnvmap(self.envmap)
 
