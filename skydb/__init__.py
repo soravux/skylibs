@@ -65,11 +65,13 @@ class SkyProbe:
     def __init__(self, path, format_='angular'):
         """Represent an environment map among an interval."""
         self.path = path
-        self.envmap = EnvironmentMap(path, format_)
+        self.format_ = format_
+        
 
     @property
     def sun_visible(self):
-        return self.envmap.data.max() > 5000
+        envmap = EnvironmentMap(self.path, self.format_)
+        return envmap.data.max() > 5000
 
     @property
     def mean_light_vector(self):
@@ -80,12 +82,13 @@ class SkyProbe:
         return os.path.normpath(self.path).split(os.sep)[-2]
 
     @property
-    def pictureHDR(self):
-        return self.envmap.data
+    def environment_map(self):
+        return EnvironmentMap(self.path, self.format_)
 
     @property
     def sun_position(self):
-        return sunutils.sunPosFromEnvmap(self.envmap)
+        envmap = EnvironmentMap(self.path, self.format_)
+        return sunutils.sunPosFromEnvmap(envmap)
 
     # ToneMapping operators. Returns unsigned 8-bit result.
     def tmoReinhard2002(self, scale=700):
@@ -93,9 +96,11 @@ class SkyProbe:
         Reinhard, Erik, et al. "Photographic tone reproduction for digital
         images." ACM Transactions on Graphics (TOG). Vol. 21. No. 3. ACM, 2002.
         """
-        return np.clip(scale * self.envmap.data / (1. + self.envmap.data), 0., 255.).astype('uint8')
+        envmap = EnvironmentMap(self.path, self.format_)
+        return np.clip(scale * envmap.data / (1. + envmap.data), 0., 255.).astype('uint8')
 
-    def tmoGamma(self, gamma, scale=1):
+    def tmoGamma(self, gamma, scale=255):
         """Performs a gamma compression: scale*V^(1/gamma) ."""
-        data = self.envmap.data - self.envmap.data.min()
+        envmap = EnvironmentMap(self.path, self.format_)
+        data = envmap.data - envmap.data.min()
         return np.clip(scale * np.power(data, 1./gamma), 0., 255.).astype('uint8')
