@@ -88,7 +88,11 @@ def readPFS(data):
 def _tonemapping(hdrimg, exec_, **kwargs):
     inPFS = writePFS(hdrimg)
 
-    listArgs = [x for x in chain(*kwargs.items())]
+    listArgs = []
+    for k,v in kwargs.items():
+        listArgs.append("--"+str(k))
+        listArgs.append(str(v))
+
     p = subprocess.Popen([exec_]+listArgs, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     output, err = p.communicate(inPFS)
 
@@ -111,9 +115,3 @@ def getAvailableToneMappers():
 for tm,tmName in zip(_availToneMappers, getAvailableToneMappers()):
     setattr(sys.modules[__name__], tmName, partial(_tonemapping, exec_=tm))
 
-if __name__ == '__main__':
-    img = hdrio.imread("envmap_low.exr")
-    #img = scipy.ndimage.interpolation.zoom(img, (0.3, 0.3, 1.0))
-    ldr = _tonemapping(img, "pfstmo_reinhard02")
-
-    hdrio.imsave("boum.jpg", ldr)
