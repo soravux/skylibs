@@ -12,7 +12,9 @@ rgb2xyz_mat = np.array([[0.412453, 0.357580, 0.180423],
                          [0.019334, 0.119193, 0.950227]], dtype="float32")
 xyz2rgb_mat = linalg.inv(rgb2xyz_mat)
 
-_availToneMappers = subprocess.check_output(["compgen -c pfstmo"], stderr=subprocess.STDOUT, shell=True).decode('ascii').strip().split("\n")
+_availToneMappers = subprocess.check_output(["compgen -c pfstmo"], 
+                                            stderr=subprocess.STDOUT, 
+                                            shell=True).decode('ascii').strip().split("\n")
 
 
 def convertToXYZ(rgbimg):
@@ -34,7 +36,8 @@ def convertFromXYZ(xyzimg):
     pixelVec = xyzimg.reshape(-1, 3)
     img = np.dot(xyz2rgb_mat, pixelVec.T).T.reshape(xyzimg.shape)
 
-    # The image will be returned with RGB values in the [0, 1] range, type=float32 !
+    # The image will be returned with RGB values in
+    # the [0, 1] range, type=float32 !
     return img
 
 
@@ -44,7 +47,9 @@ def writePFS(hdrimg):
     including a valid header.
     The hdrimg should be a valid RGB image (HDR or not).
     """
-    header = "PFS1\n{} {}\n{}\n0\nX\n0\nY\n0\nZ\n0\nENDH".format(hdrimg.shape[1], hdrimg.shape[0], hdrimg.shape[2])
+    header = "PFS1\n{} {}\n{}\n0\nX\n0\nY\n0\nZ\n0\nENDH".format(hdrimg.shape[1], 
+                                                                    hdrimg.shape[0], 
+                                                                    hdrimg.shape[2])
     b = bytes(header, "ascii")
 
     imgXYZ = convertToXYZ(hdrimg)
@@ -69,7 +74,6 @@ def readPFS(data):
     assert "PFS1" in headerLines[0], "Invalid PFS file (no PFS1 identifier)!"
     w, h = map(int, headerLines[1].split())
     channelsCount = int(headerLines[2])
-    shape = (h, w, channelsCount)
 
     # Create the output image
     img = np.fromstring(data[headerEnd:], dtype='float32', count=h*w*channelsCount)
