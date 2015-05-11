@@ -48,8 +48,7 @@ def writePFS(hdrimg):
     b = bytes(header, "ascii")
 
     imgXYZ = convertToXYZ(hdrimg)
-    for c in range(imgXYZ.shape[2]):
-        b += imgXYZ[..., c].tobytes()
+    b += imgXYZ.transpose(2, 1, 0).tobytes()
     return b
 
 
@@ -59,8 +58,9 @@ def readPFS(data):
     should be a bytes object or an equivalent (bytearray, etc.) containing the
     PFS output, including the header.
     """
-    headerEnd = data.find(b"\nENDH") + 5
-    assert headerEnd != 4, "Invalid PFS file (no header end marker)!"
+    headerEnd = data.find(b"\nENDH")
+    assert headerEnd != -1, "Invalid PFS file (no header end marker)!"
+    headerEnd += 5      # To get to the end of the ENDH tag
 
     headerLines = data[:headerEnd].decode('ascii').split("\n")
 
@@ -72,14 +72,8 @@ def readPFS(data):
     shape = (h, w, channelsCount)
 
     # Create the output image
-    img = np.empty(shape)
-
-    # Fill it with values from PFS
-    p = headerEnd
-    s = w * h * 4   # 4 = sizeof(float32)
-    for c in range(channelsCount):
-        img[..., c] = np.fromstring(data[p:p+s], dtype='float32').reshape((w, h))
-        p += s
+    img = np.fromstring(data[headerEnd:], dtype='float32', count=h*w*channelsCount)
+    img = img.reshape(channelsCount, w, h).transpose(2, 1, 0)
 
     # Return its RGB representation
     return convertFromXYZ(img)
@@ -88,12 +82,15 @@ def readPFS(data):
 def _tonemapping(hdrimg, exec_, **kwargs):
     inPFS = writePFS(hdrimg)
 
-    listArgs = [x for x in chain(*kwargs.items())]
-    p = subprocess.Popen([exec_]+listArgs, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    listArgs = []
+    for k,v in kwargs.items():
+        listArgs.append("--"+str(k))
+        listArgs.append(str(v))
+
+    p = subprocess.Popen([exec_] + listArgs, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     output, err = p.communicate(inPFS)
 
-    ldrimgRGB = readPFS(output)
-    ldrimgRGB *= 255
+    ldrimgRGB = readPFS(output) * 255.
     ldrimgRGB = np.clip(ldrimgRGB, 0, 255).astype('uint8')
 
     return ldrimgRGB
@@ -111,9 +108,3 @@ def getAvailableToneMappers():
 for tm,tmName in zip(_availToneMappers, getAvailableToneMappers()):
     setattr(sys.modules[__name__], tmName, partial(_tonemapping, exec_=tm))
 
-if __name__ == '__main__':
-    img = hdrio.imread("envmap_low.exr")
-    #img = scipy.ndimage.interpolation.zoom(img, (0.3, 0.3, 1.0))
-    ldr = _tonemapping(img, "pfstmo_reinhard02")
-
-    hdrio.imsave("boum.jpg", ldr)
