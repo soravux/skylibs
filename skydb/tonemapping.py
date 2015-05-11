@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def reinhard2002(self, envmap, scale=700):
+def reinhard2002(envmap, scale=700):
     """Performs the Reinhard 2002 operator as described in
     Reinhard, Erik, et al. "Photographic tone reproduction for digital
     images." ACM Transactions on Graphics (TOG). Vol. 21. No. 3. ACM, 2002.
@@ -12,7 +12,7 @@ def reinhard2002(self, envmap, scale=700):
     return np.clip(scale * data / (1. + data), 0., 255.).astype('uint8')
 
 
-def gamma(self, envmap, gamma=2.0, scale=255):
+def gamma(envmap, gamma=2.0, scale=255):
     """Performs a gamma compression: scale*V^(1/gamma) .
 
     :returns: 8-bits tone-mapped version of the environment map
