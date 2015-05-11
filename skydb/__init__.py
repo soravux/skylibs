@@ -35,12 +35,8 @@ class SkyInterval:
                 matches.append(join(root, filename))
 
         self.probes = list(map(SkyProbe, matches))
-        self.reftimes = [datetime.datetime(year=1, 
-                                            month=1, 
-                                            day=1,
-                                            hour=int(probe.time[:2]),
-                                            minute=int(probe.time[2:4]),
-                                            second=int(probe.time[4:6])) for probe in self.probes]
+        self.reftimes = [x.datetime for x in self.probes]
+
         if len(self.probes) > 0:
             self.sun_visibility = sum(1 for x in self.probes if x.sun_visible) / len(self.probes)
         else:
@@ -100,9 +96,9 @@ class SkyProbe:
         time_ = os.path.normpath(self.path).split(os.sep)[-2]
         date = os.path.normpath(self.path).split(os.sep)[-3]
         infos = {
-            "seconds": int(time_[-2:]),
-            "minutes": int(time_[2:4]),
-            "hour": int(time[:2]),
+            "second": int(time_[-2:]),
+            "minute": int(time_[2:4]),
+            "hour": int(time_[:2]),
             "day": int(date[-2:]),
             "month": int(date[4:6]),
             "year": int(date[:4]),
