@@ -8,6 +8,7 @@ import numpy as np
 
 from envmap import EnvironmentMap
 from hdrtools import sunutils
+from .tonemapping import reinhard2002, gamma
 
 
 class SkyDB:
@@ -47,7 +48,16 @@ class SkyInterval:
 
     @property
     def date(self):
-        return os.path.normpath(self.path).split(os.sep)[-1]
+        """
+        :returns: datetime.date object
+        """
+        date = os.path.normpath(self.path).split(os.sep)[-1]
+        infos = {
+            "day": int(date[-2:]),
+            "month": int(date[4:6]),
+            "year": int(date[:4]),
+        }
+        return datetime.date(**infos)
 
     def closestProbe(self, hours, minutes=0, seconds=0):
         """
@@ -66,41 +76,50 @@ class SkyProbe:
         """Represent an environment map among an interval."""
         self.path = path
         self.format_ = format_
-        
 
     @property
     def sun_visible(self):
+        """
+        :returns: boolean, True if the sun is visible, False otherwise.
+        """
         envmap = EnvironmentMap(self.path, self.format_)
         return envmap.data.max() > 5000
 
     @property
     def mean_light_vector(self):
+        """Mean light vector of the environment map.
+        :returns: (elevation, azimuth)
+        """
         raise NotImplementedError()
 
     @property
-    def time(self):
-        return os.path.normpath(self.path).split(os.sep)[-2]
+    def datetime(self):
+        """Datetime of the capture.
+        :returns: datetime object.
+        """
+        time_ = os.path.normpath(self.path).split(os.sep)[-2]
+        date = os.path.normpath(self.path).split(os.sep)[-3]
+        infos = {
+            "seconds": int(time_[-2:]),
+            "minutes": int(time_[2:4]),
+            "hour": int(time[:2]),
+            "day": int(date[-2:]),
+            "month": int(date[4:6]),
+            "year": int(date[:4]),
+        }
+        return datetime.datetime(**infos)
 
     @property
     def environment_map(self):
+        """
+        :returns: EnvironmentMap object.
+        """
         return EnvironmentMap(self.path, self.format_)
 
     @property
     def sun_position(self):
-        envmap = EnvironmentMap(self.path, self.format_)
-        return sunutils.sunPosFromEnvmap(envmap)
-
-    # ToneMapping operators. Returns unsigned 8-bit result.
-    def tmoReinhard2002(self, scale=700):
-        """Performs the Reinhard 2002 operator as described in
-        Reinhard, Erik, et al. "Photographic tone reproduction for digital
-        images." ACM Transactions on Graphics (TOG). Vol. 21. No. 3. ACM, 2002.
+        """
+        :returns: (elevation, azimuth)
         """
         envmap = EnvironmentMap(self.path, self.format_)
-        return np.clip(scale * envmap.data / (1. + envmap.data), 0., 255.).astype('uint8')
-
-    def tmoGamma(self, gamma, scale=255):
-        """Performs a gamma compression: scale*V^(1/gamma) ."""
-        envmap = EnvironmentMap(self.path, self.format_)
-        data = envmap.data - envmap.data.min()
-        return np.clip(scale * np.power(data, 1./gamma), 0., 255.).astype('uint8')
+        return sunutils.sunPosFromEnvmap(envmap)
