@@ -43,7 +43,7 @@ class SkyInterval:
         Return sun_visibility of the interval
         """
         if len(self.probes) > 0:
-            sun_visibility = sum(1 for x in self.probes if x.sun_visible) / len(self.probes)
+            sun_visibility = sum(1 for x in self.probes if x.sun_v) / len(self.probes)
         else:
             sun_visibility = 0
         return sun_visibility
