@@ -84,8 +84,8 @@ class SkyProbe:
         """
         :returns: boolean, True if the sun is visible, False otherwise.
         """
-        envmap = EnvironmentMap(self.path, self.format_)
-        return envmap.data.max() > 5000
+        # envmap = EnvironmentMap(self.path, self.format_)
+        return self.envmap.data.max() > 5000
 
     @property
     def mean_light_vector(self):
@@ -123,5 +123,25 @@ class SkyProbe:
         """
         :returns: (elevation, azimuth)
         """
-        envmap = EnvironmentMap(self.path, self.format_)
-        return sunutils.sunPosFromEnvmap(envmap)
+        # envmap = EnvironmentMap(self.path, self.format_)
+        return sunutils.sunPosFromEnvmap(self.envmap)
+    
+    def init_properties(self):
+        """
+        initialises probe properties
+        """
+        self.envmap = self.environment_map
+        self.sun_v = self.sun_visible
+        self.sun_p = self.sun_position
+        
+        # don't forget to call remove_envmap(self)!
+        return
+        
+    def remove_envmap(self):
+        """
+        delete probe's envmap from memory
+        """
+         #required???
+        del self.envmap
+        return
+        
