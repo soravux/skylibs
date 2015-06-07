@@ -163,7 +163,7 @@ class EnvironmentMap:
         eTmp = EnvironmentMap(targetDim, targetFormat)
         dx, dy, dz, valid = eTmp.worldCoordinates()
         u, v = self.world2image(dx, dy, dz)
-        self.format_ = targetFormat
+        self.format_ = targetFormat.lower()
         self.interpolate(u, v, valid)
 
     def rotate(self, format, input_):
