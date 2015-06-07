@@ -18,6 +18,7 @@ _availToneMappers = subprocess.check_output(["compgen -c pfstmo"],
 
 def convertToXYZ(rgbimg):
     # Normalize RGB
+    rgbimg = np.nan_to_num(rgbimg)
     rgbimg /= rgbimg.max()
     rgbimg = np.clip(rgbimg, 0.0, 1.0)
 
