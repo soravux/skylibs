@@ -94,7 +94,7 @@ class EnvironmentMap:
         _, _, _, valid = self.worldCoordinates()
         omega[~valid.ravel()] = np.nan
         
-        return omega.reshape(self.data.shape[:-1])
+        return omega.reshape(self.data.shape[0:2])
 
     def imageCoordinates(self):
         """Returns the (u, v) coordinates for each pixel center."""
@@ -253,7 +253,6 @@ class EnvironmentMap:
         """
         assert len(self.data.shape) == 3, "Data should be 3 dimensions"
 
-        assert len(self.data.shape) == 3 and self.data.shape[2] == 3, "Image already in intensity-only!"
         if self.data.shape[2] != 3:
             print("Envmap doesn't have 3 channels. This function won't do anything.")
         else:
