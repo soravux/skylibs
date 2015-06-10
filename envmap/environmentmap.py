@@ -246,14 +246,19 @@ class EnvironmentMap:
         self.data = zoom(self.data, _size, order=order)
         return self
 
-    def intensity(self):
+    def toIntensity(self):
         """
         Returns intensity-version of the environment map.
         This function assumes the CCIR 601 standard to perform internsity conversion.
         """
+        assert len(self.data.shape) == 3, "Data should be 3 dimensions"
+
         assert len(self.data.shape) == 3 and self.data.shape[2] == 3, "Image already in intensity-only!"
-        return EnvironmentMap(0.299 * self.data[...,0] + 0.587 * self.data[...,1] + 0.114 * self.data[...,2],
-                              self.format_)
+        if self.data.shape[2] != 3:
+            print("Envmap doesn't have 3 channels. This function won't do anything.")
+        else:
+            self.data = 0.299 * self.data[...,0] + 0.587 * self.data[...,1] + 0.114 * self.data[...,2]
+        return self
 
     def world2latlong(self, x, y, z):
         """Get the (u, v) coordinates of the point defined by (x, y, z) for
