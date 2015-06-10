@@ -4,13 +4,15 @@ from scipy.ndimage.interpolation import map_coordinates, zoom
 
 from hdrio import imread
 
+from .tetrahedronSolidAngle import tetrahedronSolidAngle
+
 
 SUPPORTED_FORMATS = [
     'angular',
     'skyangular',
     'latlong',
     'sphere',
-    'cube', # TODO: Not done!
+    'cube',
 ]
 
 ROTATION_FORMATS = [
@@ -67,6 +69,32 @@ class EnvironmentMap:
         if self.format_ in ['sphere', 'angular', 'skysphere', 'skyangular']:
             assert self.data.shape[0] == self.data.shape[1], (
                 "Sphere/Angular formats must have the same width/height")
+
+    def solidAngles(self):
+        """Computes the solid angle subtended by each pixel."""
+
+        # Compute coordinates of pixel borders
+        cols = np.linspace(0, 1, self.data.shape[1] + 1)
+        rows = np.linspace(0, 1, self.data.shape[0] + 1)
+
+        u, v = np.meshgrid(cols, rows)
+        dx, dy, dz, _ = self.image2world(u, v)
+
+        # Split each pixel into two triangles and compute the solid angle
+        # subtended by the two tetrahedron
+        a = np.vstack((dx[:-1,:-1].ravel(), dy[:-1,:-1].ravel(), dz[:-1,:-1].ravel()))
+        b = np.vstack((dx[:-1,1:].ravel(), dy[:-1,1:].ravel(), dz[:-1,1:].ravel()))
+        c = np.vstack((dx[1:,:-1].ravel(), dy[1:,:-1].ravel(), dz[1:,:-1].ravel()))
+        d = np.vstack((dx[1:,1:].ravel(), dy[1:,1:].ravel(), dz[1:,1:].ravel()))
+        omega = tetrahedronSolidAngle(a, b, c)
+        omega += tetrahedronSolidAngle(a, b, d)
+        
+        # Get pixel center coordinates
+
+        _, _, _, valid = self.worldCoordinates()
+        omega[~valid.ravel()] = np.nan
+        
+        return omega.reshape(self.data)
 
     def imageCoordinates(self):
         """Returns the (u, v) coordinates for each pixel center."""
@@ -209,15 +237,14 @@ class EnvironmentMap:
 
         self.data = scipy.ndimage.interpolation.zoom(self.data, _size, order=1)
         
-
     def intensity(self):
         """
-        Returns intensity-version of the environment map
+        Returns intensity-version of the environment map.
+        This function assumes the CCIR 601 standard to perform internsity conversion.
         """
         assert len(self.data.shape) == 3 and self.data.shape[2] == 3, "Image already in intensity-only!"
         return EnvironmentMap(0.299 * self.data[...,0] + 0.587 * self.data[...,1] + 0.114 * self.data[...,2],
                               self.format_)
-
 
     def world2latlong(self, x, y, z):
         """Get the (u, v) coordinates of the point defined by (x, y, z) for
