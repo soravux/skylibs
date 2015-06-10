@@ -1,6 +1,8 @@
 import numpy as np
 from numpy import logical_and as land, logical_or as lor
 
+eps = 2**-52
+
 
 def world2latlong(x, y, z):
     """Get the (u, v) coordinates of the point defined by (x, y, z) for

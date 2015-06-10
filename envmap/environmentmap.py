@@ -22,8 +22,6 @@ ROTATION_FORMATS = [
     'Q',        # TODO
 ]
 
-eps = 2**-52
-
 
 class EnvironmentMap:
     """
