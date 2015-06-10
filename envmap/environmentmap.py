@@ -94,7 +94,7 @@ class EnvironmentMap:
         _, _, _, valid = self.worldCoordinates()
         omega[~valid.ravel()] = np.nan
         
-        return omega.reshape(self.data)
+        return omega.reshape(self.data.shape[:-1])
 
     def imageCoordinates(self):
         """Returns the (u, v) coordinates for each pixel center."""
