@@ -157,6 +157,8 @@ class EnvironmentMap:
         # I haven't included it here because it may mask potential problems...
         self.setBackgroundColor(self.backgroundColor, valid)
 
+        return self
+
     def setBackgroundColor(self, color, valid):
         """Sets the area defined by valid to color."""
         assert valid.dtype == 'bool', "`valid` must be a boolean array."
@@ -166,6 +168,8 @@ class EnvironmentMap:
 
         for c in range(self.data.shape[2]):
             self.data[:,:,c][np.invert(valid)] = self.backgroundColor[c]
+
+        return self
 
     def convertTo(self, targetFormat, targetDim=None):
         """
@@ -194,6 +198,8 @@ class EnvironmentMap:
         self.format_ = targetFormat.lower()
         self.interpolate(u, v, valid)
 
+        return self
+
     def rotate(self, format, input_):
         """
         Rotate the environment map.
@@ -217,6 +223,8 @@ class EnvironmentMap:
         u, v = self.world2image(dx, dy, dz)
         self.interpolate(u, v, valid)
 
+        return self
+
     def resize(self, targetSize, order=1):
         """
         Resize the current environnement map to targetSize.
@@ -236,6 +244,7 @@ class EnvironmentMap:
             _size.append(1.0)   # To ensure we do not "scale" the color axis...
 
         self.data = zoom(self.data, _size, order=order)
+        return self
 
     def intensity(self):
         """
