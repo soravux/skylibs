@@ -145,11 +145,11 @@ class EnvironmentMap:
         source[1:-1,0] = self.data[:,0]
         source[1:-1,-1] = self.data[:,-1]
 
-        data = np.zeros((u.shape[0], u.shape[1], self.data.shape[2]))
-        for c in range(self.data.shape[2]):
+        data = np.zeros((u.shape[0], u.shape[1], d))
+        for c in range(d):
             interpdata = map_coordinates(source[:,:,c], target, cval=np.nan, order=1)
             data[:,:,c] = interpdata.reshape(data.shape[0], data.shape[1])
-        self.data = data
+        self.data = np.squeeze(data)
 
         # In original: valid &= ~isnan(data)...
         # I haven't included it here because it may mask potential problems...
@@ -255,4 +255,5 @@ class EnvironmentMap:
             print("Envmap doesn't have 3 channels. This function won't do anything.")
         else:
             self.data = 0.299 * self.data[...,0] + 0.587 * self.data[...,1] + 0.114 * self.data[...,2]
+            self.data = self.data[:,:,np.newaxis]
         return self
