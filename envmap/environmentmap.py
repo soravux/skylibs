@@ -87,7 +87,9 @@ class EnvironmentMap:
 
     def __hash__(self):
         """Provide a hash on the environment map"""
-        return int(hashlib.sha1(self.data.view(np.uint8)).hexdigest(), 16)
+        h = hashlib.sha1(self.data.view(np.uint8))
+        h.update(self.format_.encode('utf-8'))
+        return int(h.hexdigest(), 16)
 
     def solidAngles(self):
         """Computes the solid angle subtended by each pixel."""
