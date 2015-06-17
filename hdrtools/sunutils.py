@@ -3,6 +3,8 @@ import scipy, scipy.misc, scipy.ndimage, scipy.ndimage.filters
 import scipy.spatial, scipy.interpolate, scipy.spatial.distance
 from scipy.ndimage.interpolation import map_coordinates as map_coords
 
+from pysolar import solar
+
 import envmap
 
 def findBrightestSpot(envmapInput, minpct=99.99):
@@ -54,4 +56,27 @@ def sunPosFromEnvmap(envmapInput):
     azim = np.arctan2(x, -z)
 
     return elev, azim
+
+def sunPosFromCoord(latitude, longitude, time):
+    """
+    Find azimuth annd elevation of the sun using the pysolar library.
+    Takes latitude(deg), longitude(deg) and a datetime object.
+    Return tuple conaining (elevation, azimuth)
+    
+    TODO verify if timezone influences the results.
+    """
+    
+    # considers elevation=0
+    azim = solar.get_azimuth(latitude, longitude, time)
+    alti = solar.get_altitude(latitude, longitude, time)
+    
+    #transfer to rad
+    azim = (azim+360)*np.pi/180
+    elev = (90-alti) *np.pi/180
+    
+    return elev, azim
+    
+    
+    
+    
 
