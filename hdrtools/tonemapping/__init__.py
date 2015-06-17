@@ -16,9 +16,9 @@ _availToneMappers = subprocess.check_output(["compgen -c pfstmo"],
                                             stderr=subprocess.STDOUT, 
                                             shell=True).decode('ascii').strip().split("\n")
 
-
 def convertToXYZ(rgbimg):
     # Normalize RGB
+    rgbimg = np.nan_to_num(rgbimg)
     rgbimg /= rgbimg.max()
     rgbimg = np.clip(rgbimg, 0.0, 1.0)
 
@@ -83,8 +83,13 @@ def readPFS(data):
     return convertFromXYZ(img)
 
 
-def _tonemapping(hdrimg, exec_, **kwargs):
-    inPFS = writePFS(hdrimg)
+def _tonemapping(hdrimg, exec_, copy=True, **kwargs):
+    """
+    Wrapper function for all available tone mappers.
+    If copy is set to True (default), then it will copy the array
+    before normalizing it (as required by PFS format).
+    """
+    inPFS = writePFS(hdrimg if not copy else hdrimg.copy())
 
     listArgs = []
     for k,v in kwargs.items():
