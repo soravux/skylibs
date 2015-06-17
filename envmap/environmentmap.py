@@ -1,3 +1,6 @@
+import hashlib
+from copy import deepcopy
+
 import numpy as np
 from scipy.ndimage.interpolation import map_coordinates, zoom
 
@@ -21,6 +24,20 @@ ROTATION_FORMATS = [
     'EV',       # TODO
     'Q',        # TODO
 ]
+
+
+#From Dan:
+#  I've generated these using the monochromatic albedo values from here: 
+#  http://agsys.cra-cin.it/tools/solarradiation/help/Albedo.html  
+#  (they cite some books as references). Since these monochromatic, 
+#  I got unscaled r, g, b values from internet textures and scaled them 
+#  so that their mean matches the expected monochromatic albedo. Hopefully 
+#  this is a valid thing to do.
+GROUND_ALBEDOS = {
+    "GreenGrass": np.array([ 0.291801, 0.344855, 0.113344 ]).T,
+    "FreshSnow": np.array([ 0.797356, 0.835876, 0.916767 ]).T,
+    "Asphalt": np.array([ 0.148077, 0.150000, 0.151923 ]).T,
+}
 
 
 class EnvironmentMap:
@@ -68,8 +85,15 @@ class EnvironmentMap:
             assert self.data.shape[0] == self.data.shape[1], (
                 "Sphere/Angular formats must have the same width/height")
 
+    def __hash__(self):
+        """Provide a hash on the environment map"""
+        return int(hashlib.sha1(self.data.view(np.uint8)).hexdigest(), 16)
+
     def solidAngles(self):
         """Computes the solid angle subtended by each pixel."""
+        # If already computed, take it
+        if hasattr(self, '_solidAngles') and hash(self) == self._solidAngles_hash:
+            return self._solidAngles
 
         # Compute coordinates of pixel borders
         cols = np.linspace(0, 1, self.data.shape[1] + 1)
@@ -88,11 +112,12 @@ class EnvironmentMap:
         omega += tetrahedronSolidAngle(a, b, d)
         
         # Get pixel center coordinates
-
         _, _, _, valid = self.worldCoordinates()
         omega[~valid.ravel()] = np.nan
         
-        return omega.reshape(self.data.shape[0:2])
+        self._solidAngles = omega.reshape(self.data.shape[0:2])
+        self._solidAngles_hash = hash(self)
+        return self._solidAngles
 
     def imageCoordinates(self):
         """Returns the (u, v) coordinates for each pixel center."""
@@ -257,3 +282,32 @@ class EnvironmentMap:
             self.data = 0.299 * self.data[...,0] + 0.587 * self.data[...,1] + 0.114 * self.data[...,2]
             self.data = self.data[:,:,np.newaxis]
         return self
+
+    def setHemisphereAlbedo(self, normal, value):
+        """Sets an whole hemisphere defined by `normal` to a given `value`
+        (weighted by its solid angle).
+        Useful to set the ground albedo."""
+        raise NotImplementedError()
+
+    def getMeanLightVectors(self, normals):
+        """Compute the mean light vector of the environment map for the normals given.
+        Normals should be 3xN.
+        Output is 3xN.
+        """
+        normals = np.asarray(normals)
+        solidAngles = self.solidAngles()
+        solidAngles /= np.nansum(solidAngles) # Normalize to 1
+        normals /= np.linalg.norm(normals, 1)
+
+        x, y, z, valid = self.worldCoordinates()
+        valid = valid & ~np.isnan(solidAngles)
+
+        xyz = np.dstack((x, y, z))
+
+        visibility = xyz.dot(normals) > 0
+
+        intensity = deepcopy(self).toIntensity()
+        meanlight = visibility * intensity.data * solidAngles[:,:,np.newaxis]
+        meanlight = np.nansum(xyz[...,np.newaxis] * meanlight[...,np.newaxis].transpose((0,1,3,2)), (0, 1))
+
+        return meanlight
