@@ -57,6 +57,7 @@ def sunPosFromEnvmap(envmapInput):
 
     return elev, azim
 
+
 def sunPosFromCoord(latitude, longitude, time):
     """
     Find azimuth annd elevation of the sun using the pysolar library.
