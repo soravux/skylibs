@@ -124,15 +124,15 @@ class SkyProbe:
         :returns: (elevation, azimuth)
         """
         # envmap = EnvironmentMap(self.path, self.format_)
-        return sunutils.sunPosFromEnvmap(self.envmap)
+        # return sunutils.sunPosFromEnvmap(self.envmap)
+        return sunutils.sunPosFromCoord(46.778969, -71.274914, self.datetime)
     
     def init_properties(self):
         """
-        initialises probe properties
+        initialises probe properties that are slow
         """
         self.envmap = self.environment_map
         self.sun_v = self.sun_visible
-        self.sun_p = self.sun_position
         
         # don't forget to call remove_envmap(self)!
         return
