@@ -8,7 +8,6 @@ import numpy as np
 
 from envmap import EnvironmentMap
 from hdrtools import sunutils
-from .tonemapping import reinhard2002, gamma
 
 
 class SkyDB:
