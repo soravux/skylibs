@@ -35,11 +35,17 @@ class SkyInterval:
 
         self.probes = list(map(SkyProbe, matches))
         self.reftimes = [x.datetime for x in self.probes]
-
+        
+    @property
+    def sun_visibility(self):
+        """
+        Return sun_visibility of the interval
+        """
         if len(self.probes) > 0:
-            self.sun_visibility = sum(1 for x in self.probes if x.sun_visible) / len(self.probes)
+            sun_visibility = sum(1 for x in self.probes if x.sun_v) / len(self.probes)
         else:
-            self.sun_visibility = 0
+            sun_visibility = 0
+        return sun_visibility
 
     @property
     def date(self):
@@ -55,7 +61,7 @@ class SkyInterval:
         return datetime.date(**infos)
 
     def closestProbe(self, hours, minutes=0, seconds=0):
-        """
+        """
         Return the SkyProbe object closest to the requested time.
         TODO : check for day change (if we ask for 6:00 AM and the probe sequence
             only begins at 7:00 PM and ends at 9:00 PM, then 9:00 PM is actually
@@ -72,13 +78,13 @@ class SkyProbe:
         self.path = path
         self.format_ = format_
 
-    @property
+    @property
     def sun_visible(self):
         """
         :returns: boolean, True if the sun is visible, False otherwise.
         """
-        envmap = EnvironmentMap(self.path, self.format_)
-        return envmap.data.max() > 5000
+        # envmap = EnvironmentMap(self.path, self.format_)
+        return self.envmap.data.max() > 5000
 
     @property
     def datetime(self):
@@ -109,5 +115,25 @@ class SkyProbe:
         """
         :returns: (elevation, azimuth)
         """
-        envmap = EnvironmentMap(self.path, self.format_)
-        return sunutils.sunPosFromEnvmap(envmap)
+        # envmap = EnvironmentMap(self.path, self.format_)
+        # return sunutils.sunPosFromEnvmap(self.envmap)
+        return sunutils.sunPosFromCoord(46.778969, -71.274914, self.datetime)
+    
+    def init_properties(self):
+        """
+        initialises probe properties that are slow
+        """
+        self.envmap = self.environment_map
+        self.sun_v = self.sun_visible
+        
+        # don't forget to call remove_envmap(self)!
+        return
+        
+    def remove_envmap(self):
+        """
+        delete probe's envmap from memory
+        """
+         #required???
+        del self.envmap
+        return
+        
