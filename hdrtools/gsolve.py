@@ -1,11 +1,11 @@
 # Taken from Debevec1997 "Recovering High Dynamic Range Radiance Maps
 #                         from Photographs"
 #
-# gsolve.py − Solve for imaging system response function
+# gsolve.py - Solve for imaging system response function
 #
 # Given a set of pixel values observed for several pixels in several
 # images with different exposure times, this function returns the
-# imaging system’s response function g as well as the log film irradiance
+# imaging system's response function g as well as the log film irradiance
 # values for the observed pixels.
 #
 # Assumes:
@@ -34,7 +34,7 @@ def gsolve(Z, B, l, w):
     A = np.zeros((Z.shape[0]*Z.shape[1] + n - 1, n + Z.shape[0]), dtype=float)
     b = np.zeros((A.shape[0], 1), dtype=float)
 
-    # Include the data−fitting equations
+    # Include the data-fitting equations
     k = 0;
     for i in range(Z.shape[0]):
         for j in range(Z.shape[1]):
