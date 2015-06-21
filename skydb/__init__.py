@@ -81,13 +81,6 @@ class SkyProbe:
         return envmap.data.max() > 5000
 
     @property
-    def mean_light_vector(self):
-        """Mean light vector of the environment map.
-        :returns: (elevation, azimuth)
-        """
-        raise NotImplementedError()
-
-    @property
     def datetime(self):
         """Datetime of the capture.
         :returns: datetime object.
