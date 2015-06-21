@@ -66,18 +66,12 @@ def sunPosFromCoord(latitude, longitude, time):
     
     TODO verify if timezone influences the results.
     """
-    
-    # considers elevation=0
+
     azim = solar.get_azimuth(latitude, longitude, time)
     alti = solar.get_altitude(latitude, longitude, time)
-    
-    #transfer to rad
-    azim = (azim+360)*np.pi/180
-    elev = (90-alti) *np.pi/180
-    
-    return elev, azim
-    
-    
-    
-    
 
+    # Convert to radians
+    azim = (azim + 360)*np.pi/180
+    elev = (90 - alti)*np.pi/180
+
+    return elev, azim
