@@ -35,7 +35,7 @@ class SkyInterval:
 
         self.probes = list(map(SkyProbe, matches))
         self.reftimes = [x.datetime for x in self.probes]
-        
+
     @property
     def sun_visibility(self):
         """
@@ -83,7 +83,7 @@ class SkyProbe:
         """
         Cache properties that are resource intensive to generate.
         """
-        if not hasatter(self, '_envmap'):
+        if not hasattr(self, '_envmap'):
             self._envmap = self.environment_map
 
     def remove_envmap(self):
@@ -133,4 +133,19 @@ class SkyProbe:
             self.init_properties()
             return sunutils.sunPosFromEnvmap(self._envmap)
         elif method == "coords":
-            return sunutils.sunPosFromCoord(46.778969, -71.274914, self.datetime)
+            latitude = 46.778969
+            longitude = -71.274914
+            elevation = 125
+
+            if self.datetime < datetime.datetime(2013, 12, 25, 10, 10, 10):
+                latitude, longitude = 40.442794, -79.944115
+                elevation = 300
+
+            d = self.datetime
+            if self.datetime.tzinfo is None:
+                #TODO get timezone from latitude and longitude
+                # d = pytz.timezone('US/Eastern').localize(self.datetime, is_dst=False)
+                d += datetime.timedelta(hours=+4)
+
+
+            return sunutils.sunPosFromCoord(latitude, longitude, d, elevation=elevation)
