@@ -3,6 +3,7 @@ from os import listdir
 from os.path import abspath, isdir, join
 import fnmatch
 import datetime
+import pytz
 
 import numpy as np
 
@@ -36,7 +37,7 @@ class SkyInterval:
 
         self.probes = list(map(SkyProbe, matches))
         self.reftimes = [x.datetime for x in self.probes]
-        
+
     @property
     def sun_visibility(self):
         """
@@ -79,7 +80,7 @@ class SkyProbe:
         self.path = path
         self.format_ = format_
 
-    @property
+    @property
     def sun_visible(self):
         """
         :returns: boolean, True if the sun is visible, False otherwise.
@@ -125,18 +126,34 @@ class SkyProbe:
         """
         # envmap = EnvironmentMap(self.path, self.format_)
         # return sunutils.sunPosFromEnvmap(self.envmap)
-        return sunutils.sunPosFromCoord(46.778969, -71.274914, self.datetime)
-    
+
+        latitude = 46.778969
+        longitude = -71.274914
+        elevation = 125
+
+        if self.datetime < datetime.datetime(2013, 12, 25, 10, 10, 10):
+            latitude, longitude = 40.442794, -79.944115
+            elevation = 300
+
+        d = self.datetime
+        if self.datetime.tzinfo is None:
+            #TODO get timezone from latitude and longitude
+            # d = pytz.timezone('US/Eastern').localize(self.datetime, is_dst=False)
+            d += datetime.timedelta(hours=+4)
+
+
+        return sunutils.sunPosFromCoord(latitude, longitude, d, elevation=elevation)
+
     def init_properties(self):
         """
         initialises probe properties that are slow
         """
         self.envmap = self.environment_map
         self.sun_v = self.sun_visible
-        
+
         # don't forget to call remove_envmap(self)!
         return
-        
+
     def remove_envmap(self):
         """
         delete probe's envmap from memory
@@ -144,4 +161,3 @@ class SkyProbe:
          #required???
         del self.envmap
         return
-        
