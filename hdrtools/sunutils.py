@@ -58,7 +58,7 @@ def sunPosFromEnvmap(envmapInput):
     return elev, azim
 
 
-def sunPosFromCoord(latitude, longitude, time):
+def sunPosFromCoord(latitude, longitude, time_):
     """
     Find azimuth annd elevation of the sun using the pysolar library.
     Takes latitude(deg), longitude(deg) and a datetime object.
@@ -66,18 +66,12 @@ def sunPosFromCoord(latitude, longitude, time):
     
     TODO verify if timezone influences the results.
     """
-    
-    # considers elevation=0
-    azim = solar.get_azimuth(latitude, longitude, time)
-    alti = solar.get_altitude(latitude, longitude, time)
-    
-    #transfer to rad
-    azim = (azim+360)*np.pi/180
-    elev = (90-alti) *np.pi/180
-    
-    return elev, azim
-    
-    
-    
-    
 
+    azim = solar.get_azimuth(latitude, longitude, time_)
+    alti = solar.get_altitude(latitude, longitude, time_)
+
+    # Convert to radians
+    azim = (azim + 360)*np.pi/180
+    elev = (90 - alti)*np.pi/180
+
+    return elev, azim
