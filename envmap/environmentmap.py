@@ -27,11 +27,11 @@ ROTATION_FORMATS = [
 
 
 #From Dan:
-#  I've generated these using the monochromatic albedo values from here: 
-#  http://agsys.cra-cin.it/tools/solarradiation/help/Albedo.html  
-#  (they cite some books as references). Since these monochromatic, 
-#  I got unscaled r, g, b values from internet textures and scaled them 
-#  so that their mean matches the expected monochromatic albedo. Hopefully 
+#  I've generated these using the monochromatic albedo values from here:
+#  http://agsys.cra-cin.it/tools/solarradiation/help/Albedo.html
+#  (they cite some books as references). Since these monochromatic,
+#  I got unscaled r, g, b values from internet textures and scaled them
+#  so that their mean matches the expected monochromatic albedo. Hopefully
 #  this is a valid thing to do.
 GROUND_ALBEDOS = {
     "GreenGrass": np.array([ 0.291801, 0.344855, 0.113344 ]).T,
@@ -112,11 +112,11 @@ class EnvironmentMap:
         d = np.vstack((dx[1:,1:].ravel(), dy[1:,1:].ravel(), dz[1:,1:].ravel()))
         omega = tetrahedronSolidAngle(a, b, c)
         omega += tetrahedronSolidAngle(a, b, d)
-        
+
         # Get pixel center coordinates
         _, _, _, valid = self.worldCoordinates()
         omega[~valid.ravel()] = np.nan
-        
+
         self._solidAngles = omega.reshape(self.data.shape[0:2])
         self._solidAngles_hash = hash(self)
         return self._solidAngles

@@ -39,7 +39,7 @@ def findBrightestSpot(envmapInput, minpct=99.99):
     # Obtain the center of mass of the said biggest patch (we suppose that it is the sun)
     centerpos = scipy.ndimage.measurements.center_of_mass(intensityimg, labelarray, biggestPatchIdx)
 
-    return centerpos 
+    return centerpos
 
 
 def sunPosFromEnvmap(envmapInput):
@@ -58,20 +58,24 @@ def sunPosFromEnvmap(envmapInput):
     return elev, azim
 
 
-def sunPosFromCoord(latitude, longitude, time_):
+def sunPosFromCoord(latitude, longitude, time_, elevation=0):
     """
     Find azimuth annd elevation of the sun using the pysolar library.
     Takes latitude(deg), longitude(deg) and a datetime object.
     Return tuple conaining (elevation, azimuth)
-    
+
     TODO verify if timezone influences the results.
     """
-
-    azim = solar.get_azimuth(latitude, longitude, time_)
-    alti = solar.get_altitude(latitude, longitude, time_)
+    # import datetime
+    # time_ = datetime.datetime(2014, 10, 11, 9, 55, 28)
+    azim = solar.get_azimuth(latitude, longitude, time_, elevation)
+    alti = solar.get_altitude(latitude, longitude, time_, elevation)
 
     # Convert to radians
-    azim = (azim + 360)*np.pi/180
-    elev = (90 - alti)*np.pi/180
+    azim = np.radians(-azim)
+    elev = np.radians(90-alti)
+
+    if azim > np.pi: azim = azim - 2*np.pi
+    if elev > np.pi: elev = elev - 2*np.pi
 
     return elev, azim
