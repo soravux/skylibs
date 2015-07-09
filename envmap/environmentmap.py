@@ -205,10 +205,6 @@ class EnvironmentMap:
         :type targetFormat: string
         :type targetFormat: integer
 
-.. todo::
-
-    Support targetDim
-
         """
         assert targetFormat.lower() in SUPPORTED_FORMATS, (
             "Unknown format: {}".format(targetFormat))
