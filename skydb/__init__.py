@@ -83,7 +83,7 @@ class SkyProbe:
         """
         Cache properties that are resource intensive to generate.
         """
-        if not hasatter(self, '_envmap'):
+        if not hasattr(self, '_envmap'):
             self._envmap = self.environment_map
 
     def remove_envmap(self):
