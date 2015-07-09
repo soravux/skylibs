@@ -12,7 +12,7 @@ def reinhard2002(envmap, scale=700):
     return np.clip(scale * data / (1. + data), 0., 255.).astype('uint8')
 
 
-def gamma(envmap, gamma=2., scale=250.):
+def gamma(envmap, gamma=2., scale=2.):
     """Performs a gamma compression: scale*V^(1/gamma) .
 
     :returns: 8-bits tone-mapped version of the environment map
