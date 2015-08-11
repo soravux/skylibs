@@ -191,8 +191,13 @@ class EnvironmentMap:
 
         self.backgroundColor = np.asarray(color)
 
-        for c in range(self.data.shape[2]):
-            self.data[:,:,c][np.invert(valid)] = self.backgroundColor[c]
+        grayscale = len(self.data.shape) == 2
+
+        if grayscale:
+            self.data[:,:][np.invert(valid)] = self.backgroundColor.dot(np.array([0.299, 0.587, 0.114]).T)
+        else:
+            for c in range(nb_channels):
+                self.data[:,:,c][np.invert(valid)] = self.backgroundColor[c]
 
         return self
 
