@@ -1,5 +1,6 @@
 import sys
 import array
+import warnings
 
 import OpenEXR
 import Imath
@@ -24,10 +25,25 @@ def imread(filename):
     dw = f.header()['dataWindow']
     h, w = dw.max.y - dw.min.y + 1, dw.max.x - dw.min.x + 1
 
-    # Read the three color channels as 32-bit floats
-    FLOAT = Imath.PixelType(Imath.PixelType.FLOAT)
-    R, G, B = [ np.fromstring(f.channel(x, FLOAT), dtype=np.float32) for x in ['R', 'G', 'B'] ]
-    return np.dstack((R, G, B)).reshape(h, w, 3)
+    # Use the attribute "v" of PixelType objects because they have no __eq__
+    pixformat_mapping = {Imath.PixelType(Imath.PixelType.FLOAT).v: np.float32,
+                            Imath.PixelType(Imath.PixelType.HALF).v: np.float16,
+                            Imath.PixelType(Imath.PixelType.UINT).v: np.uint32}
+
+    data = []
+    nc = len(f.header()['channels'])
+    if nc == 3:    # RGB
+        for c in ('R', 'G', 'B'):
+            # Check the data type
+            dt = f.header()['channels'][c].type
+            data.append(np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]))
+    elif nc == 1:  # Greyscale
+        cname = list(f.header()['channels'].keys())[0]
+        # Check the data type
+        dt = f.header()['channels'][cname].type
+        data.append(np.fromstring(f.channel(cname), dtype=pixformat_mapping[dt.v]))
+
+    return np.dstack(data).reshape(h, w, nc)
 
 
 def imwrite(filename, arr, **params):
@@ -36,7 +52,7 @@ def imwrite(filename, arr, **params):
 
     Optionnal params : 
     compression = 'NONE' | 'RLE' | 'ZIPS' | 'ZIP' | 'PIZ' | 'PXR24' (default PIZ)
-    pixeltype = 'HALF' | 'FLOAT' | 'UINT' (default FLOAT)
+    pixeltype = 'HALF' | 'FLOAT' | 'UINT' (default : dtype of the input array if float16, float32 or uint32, else float16)
 
 .. todo::
 
@@ -54,7 +70,21 @@ def imwrite(filename, arr, **params):
                             'PIZ' : Imath.Compression(Imath.Compression.PIZ_COMPRESSION),
                             'PXR24' : Imath.Compression(Imath.Compression.PXR24_COMPRESSION)}[compression]
 
-    pixformat = 'FLOAT' if not 'pixeltype' in params or params['pixeltype'] not in ('HALF', 'FLOAT') else params['pixeltype']
+
+    if 'pixeltype' in params and params['pixeltype'] in ('HALF', 'FLOAT', 'UINT'):
+        # User-defined pixel type
+        pixformat = params['pixeltype']
+    elif arr.dtype == np.float32:
+        pixformat = 'FLOAT'
+    elif arr.dtype == np.uint32:
+        pixformat = 'UINT'
+    elif arr.dtype == np.float16:
+        pixformat = 'HALF'
+    else:
+        # Default : half precision float
+        pixformat = 'HALF'
+        warnings.warn("imwrite received an array with dtype={}, which cannot be saved in EXR format. Will fallback to HALF-PRECISION.".format(arr.dtype), RuntimeWarning)
+
     imath_pixformat = {'HALF' : Imath.PixelType(Imath.PixelType.HALF),
                         'FLOAT' : Imath.PixelType(Imath.PixelType.FLOAT),
                         'UINT' : Imath.PixelType(Imath.PixelType.UINT)}[pixformat]
@@ -65,7 +95,6 @@ def imwrite(filename, arr, **params):
     # Convert to strings
     # TODO: Investigate the side-effects of the float cast
     R, G, B = [ x.astype(numpy_pixformat).tobytes() for x in [arr[:,:,0], arr[:,:,1], arr[:,:,2]] ]
-    #(R, G, B) = [ array.array('f', Chan).tostring() for Chan in (arr[:,:,0], arr[:,:,1], arr[:,:,2]) ]
 
 
     outHeader = OpenEXR.Header(w, h)
