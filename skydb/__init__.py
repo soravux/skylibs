@@ -115,7 +115,17 @@ class SkyProbe:
             "month": int(date[4:6]),
             "year": int(date[:4]),
         }
-        return datetime.datetime(**infos)
+
+        if infos["second"] >= 60:
+            infos["second"] = 59
+
+        try:
+            datetime_ = datetime.datetime(**infos)
+        except ValueError:
+            print('error on path:', self.path)
+            raise
+
+        return datetime_
 
     @property
     def environment_map(self):
