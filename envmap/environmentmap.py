@@ -302,8 +302,7 @@ class EnvironmentMap:
         solidAngles /= np.nansum(solidAngles) # Normalize to 1
         normals /= np.linalg.norm(normals, 1)
 
-        x, y, z, valid = self.worldCoordinates()
-        valid = valid & ~np.isnan(solidAngles)
+        x, y, z, _ = self.worldCoordinates()
 
         xyz = np.dstack((x, y, z))
 
