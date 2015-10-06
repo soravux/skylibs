@@ -64,7 +64,7 @@ def imwrite(filename, arr, **params):
 
     # Convert to strings
     # TODO: Investigate the side-effects of the float cast
-    R, G, B = [ x.astype(numpy_pixformat).tobytes() for x in [arr[:,:,0], arr[:,:,1], arr[:,:,2]] ]
+    R, G, B = [ x.astype(numpy_pixformat).tostring() for x in [arr[:,:,0], arr[:,:,1], arr[:,:,2]] ]
     #(R, G, B) = [ array.array('f', Chan).tostring() for Chan in (arr[:,:,0], arr[:,:,1], arr[:,:,2]) ]
 
 
