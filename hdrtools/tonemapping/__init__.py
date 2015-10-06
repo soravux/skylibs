@@ -53,7 +53,7 @@ def writePFS(hdrimg):
     b = bytes(header, "ascii")
 
     imgXYZ = convertToXYZ(hdrimg)
-    b += imgXYZ.transpose(2, 1, 0).tobytes()
+    b += imgXYZ.transpose(2, 1, 0).tostring()
     return b
 
 
