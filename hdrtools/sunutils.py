@@ -52,7 +52,7 @@ def sunPosFromEnvmap(envmapInput):
 
     x, y, z, _ = envmapInput.image2world(u, v)
 
-    elev = np.arccos(y)
+    elev = np.arcsin(y)
     azim = np.arctan2(x, -z)
 
     return elev, azim
