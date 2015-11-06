@@ -1,4 +1,5 @@
 import hashlib
+import os
 from copy import deepcopy
 
 import numpy as np
@@ -8,6 +9,7 @@ from hdrio import imread
 
 from .tetrahedronSolidAngle import tetrahedronSolidAngle
 from .projections import *
+from .xmlhelper import EnvmapXMLParser
 
 
 SUPPORTED_FORMATS = [
@@ -47,7 +49,7 @@ class EnvironmentMap:
     * Move world2* and *2world to transforms.py
 
     """
-    def __init__(self, im, format_):
+    def __init__(self, im, format_=None):
         """
         Creates an EnvironmentMap.
 
@@ -56,6 +58,11 @@ class EnvironmentMap:
         :type im: float, numpy array
         :type format_: string
         """
+        if not format_ and isinstance(im, str):
+            filename = os.path.splitext(im)[0]
+            metadata = EnvmapXMLParser("{}.meta.xml".format(filename))
+            format_ = metadata.getFormat()
+
         assert format_.lower() in SUPPORTED_FORMATS, (
             "Unknown format: {}".format(format_))
 
