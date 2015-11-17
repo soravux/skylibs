@@ -74,10 +74,9 @@ class SkyInterval:
 
 
 class SkyProbe:
-    def __init__(self, path, format_='angular'):
+    def __init__(self, path):
         """Represent an environment map among an interval."""
         self.path = path
-        self.format_ = format_
 
     def init_properties(self):
         """
@@ -132,7 +131,7 @@ class SkyProbe:
         """
         :returns: EnvironmentMap object.
         """
-        return EnvironmentMap(self.path, self.format_)
+        return EnvironmentMap(self.path)
 
     @property
     def sun_position(self, method="coords"):
