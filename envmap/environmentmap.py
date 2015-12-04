@@ -171,7 +171,11 @@ class EnvironmentMap:
         target = np.vstack((v.flatten()*self.data.shape[0], u.flatten()*self.data.shape[1]))
 
         # Repeat the first and last rows/columns for interpolation purposes
-        h, w, d = self.data.shape
+        if len(self.data.shape) == 2:
+            h, w = self.data.shape
+            d = 1
+        else:
+            h, w, d = self.data.shape
         source = np.empty((h + 2, w + 2, d))
         source[1:-1, 1:-1] = self.data
         source[0,1:-1] = self.data[0,:]; source[0,0] = self.data[0,0]; source[0,-1] = self.data[0,-1]
@@ -179,11 +183,14 @@ class EnvironmentMap:
         source[1:-1,0] = self.data[:,0]
         source[1:-1,-1] = self.data[:,-1]
 
+        # To avoid displacement due to the padding
+        u += 1./self.data.shape[1]
+        v += 1/self.data.shape[0]
+
         data = np.zeros((u.shape[0], u.shape[1], d))
         for c in range(d):
-            interpdata = map_coordinates(source[:,:,c], target, cval=np.nan, order=1)
-            data[:,:,c] = interpdata.reshape(data.shape[0], data.shape[1])
-        self.data = np.squeeze(data)
+            map_coordinates(source[:,:,c], target, output=data[:,:,c].reshape(-1), cval=np.nan, order=1, prefilter=False)
+        self.data = data
 
         # In original: valid &= ~isnan(data)...
         # I haven't included it here because it may mask potential problems...
@@ -219,6 +226,7 @@ class EnvironmentMap:
         :type targetFormat: integer
 
         """
+        import time
         assert targetFormat.lower() in SUPPORTED_FORMATS, (
             "Unknown format: {}".format(targetFormat))
 
@@ -226,11 +234,18 @@ class EnvironmentMap:
             # By default, number of rows
             targetDim = self.data.shape[0]
 
+        a = time.time()
         eTmp = EnvironmentMap(targetDim, targetFormat)
+        b = time.time()
         dx, dy, dz, valid = eTmp.worldCoordinates()
+        c = time.time()
         u, v = self.world2image(dx, dy, dz)
+        d = time.time()
         self.format_ = targetFormat.lower()
         self.interpolate(u, v, valid)
+        e = time.time()
+
+        #import pdb; pdb.set_trace()
 
         return self
 
