@@ -15,7 +15,6 @@ def imread(filename):
 .. todo::
 
     * Support Alpha channel (and others)
-    * Support Greyscale
 
     """
     # Open the input file
@@ -32,17 +31,19 @@ def imread(filename):
 
     data = []
     nc = len(f.header()['channels'])
-    if nc == 3:    # RGB
-        for c in ('R', 'G', 'B'):
-            # Check the data type
-            dt = f.header()['channels'][c].type
-            data.append(np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]))
-    elif nc == 1:  # Greyscale
+    if nc == 1:  # Greyscale
         cname = list(f.header()['channels'].keys())[0]
         # Check the data type
         dt = f.header()['channels'][cname].type
         data.append(np.fromstring(f.channel(cname), dtype=pixformat_mapping[dt.v]))
-
+    else:
+        assert 'R' in f.header()['channels'] and 'G' in f.header()['channels'] and 'B' in f.header()['channels'], "Not a grayscale image, but no RGB data!"
+        channelsToUse = ('R', 'G', 'B', 'A') if 'A' in f.header()['channels'] else ('R', 'G', 'B')
+        for c in channelsToUse:
+            # Check the data type
+            dt = f.header()['channels'][c].type
+            data.append(np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]))
+    
     return np.dstack(data).reshape(h, w, nc)
 
 
