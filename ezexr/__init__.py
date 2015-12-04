@@ -39,6 +39,7 @@ def imread(filename):
     else:
         assert 'R' in f.header()['channels'] and 'G' in f.header()['channels'] and 'B' in f.header()['channels'], "Not a grayscale image, but no RGB data!"
         channelsToUse = ('R', 'G', 'B', 'A') if 'A' in f.header()['channels'] else ('R', 'G', 'B')
+        nc = len(channelsToUse)
         for c in channelsToUse:
             # Check the data type
             dt = f.header()['channels'][c].type
