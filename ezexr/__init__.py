@@ -20,8 +20,11 @@ def imread(filename):
     # Open the input file
     f = OpenEXR.InputFile(filename)
 
+    # Get the header (we store it in a variable because this function read the file each time it is called)
+    header = f.header()
+
     # Compute the size
-    dw = f.header()['dataWindow']
+    dw = header['dataWindow']
     h, w = dw.max.y - dw.min.y + 1, dw.max.x - dw.min.x + 1
 
     # Use the attribute "v" of PixelType objects because they have no __eq__
@@ -30,19 +33,19 @@ def imread(filename):
                             Imath.PixelType(Imath.PixelType.UINT).v: np.uint32}
 
     data = []
-    nc = len(f.header()['channels'])
+    nc = len(header['channels'])
     if nc == 1:  # Greyscale
-        cname = list(f.header()['channels'].keys())[0]
+        cname = list(header['channels'].keys())[0]
         # Check the data type
-        dt = f.header()['channels'][cname].type
+        dt = header['channels'][cname].type
         data.append(np.fromstring(f.channel(cname), dtype=pixformat_mapping[dt.v]))
     else:
-        assert 'R' in f.header()['channels'] and 'G' in f.header()['channels'] and 'B' in f.header()['channels'], "Not a grayscale image, but no RGB data!"
-        channelsToUse = ('R', 'G', 'B', 'A') if 'A' in f.header()['channels'] else ('R', 'G', 'B')
+        assert 'R' in header['channels'] and 'G' in header['channels'] and 'B' in header['channels'], "Not a grayscale image, but no RGB data!"
+        channelsToUse = ('R', 'G', 'B', 'A') if 'A' in header['channels'] else ('R', 'G', 'B')
         nc = len(channelsToUse)
         for c in channelsToUse:
             # Check the data type
-            dt = f.header()['channels'][c].type
+            dt = header['channels'][c].type
             data.append(np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]))
     
     return np.dstack(data).reshape(h, w, nc)
