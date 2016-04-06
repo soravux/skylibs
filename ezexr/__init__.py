@@ -4,13 +4,17 @@ import warnings
 
 import OpenEXR
 import Imath
+import time
 
 import numpy as np
 
 
-def imread(filename):
+def imread(filename, bufferImage=None):
     """
     Read an .exr image and returns a numpy matrix.
+    If bufferImage is not None, then it should be a numpy array
+    of a sufficient size to contain the data.
+    If it is None, a new array is created and returned.
 
 .. todo::
 
@@ -31,24 +35,30 @@ def imread(filename):
     pixformat_mapping = {Imath.PixelType(Imath.PixelType.FLOAT).v: np.float32,
                             Imath.PixelType(Imath.PixelType.HALF).v: np.float16,
                             Imath.PixelType(Imath.PixelType.UINT).v: np.uint32}
-
-    data = []
+    
+    # Get the number of channels
     nc = len(header['channels'])
+    # Check the data type
+    dtGlobal = list(header['channels'].values())[0].type
+    
+    # Create the read buffer if needed
+    data = bufferImage if bufferImage is not None else np.empty((h, w, nc), dtype=pixformat_mapping[dtGlobal.v])
+        
     if nc == 1:  # Greyscale
         cname = list(header['channels'].keys())[0]
-        # Check the data type
-        dt = header['channels'][cname].type
-        data.append(np.fromstring(f.channel(cname), dtype=pixformat_mapping[dt.v]))
+        data = np.fromstring(f.channel(cname), dtype=pixformat_mapping[dtGlobal.v]).reshape(h, w, 1)
     else:
         assert 'R' in header['channels'] and 'G' in header['channels'] and 'B' in header['channels'], "Not a grayscale image, but no RGB data!"
         channelsToUse = ('R', 'G', 'B', 'A') if 'A' in header['channels'] else ('R', 'G', 'B')
         nc = len(channelsToUse)
-        for c in channelsToUse:
+        for i,c in enumerate(channelsToUse):
             # Check the data type
             dt = header['channels'][c].type
-            data.append(np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]))
+            data[:, :, i] = np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]).reshape((h, w))
+            if dt.v != dtGlobal.v:
+                data[:, :, i] = data[:, :, i].astype(pixformat_mapping[dtGlobal.v])
     
-    return np.dstack(data).reshape(h, w, nc)
+    return data
 
 
 def imwrite(filename, arr, **params):
