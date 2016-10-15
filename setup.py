@@ -4,4 +4,6 @@ setup(
     name='skylibs',
     version='0.1',
     packages=['ezexr', 'envmap', 'hdrio', 'hdrtools', 'hdrtools/tonemapping', 'skydb'],
+    install_requires='openexr>=1.3.0',
+    dependency_links=['https://github.com/jamesbowman/openexrpython/tarball/master#egg=openexr-1.3.0'],
 )
