@@ -91,6 +91,9 @@ class EnvironmentMap:
         if self.format_ in ['sphere', 'angular', 'skysphere', 'skyangular']:
             assert self.data.shape[0] == self.data.shape[1], (
                 "Sphere/Angular formats must have the same width/height")
+        elif self.format_ == 'latlong':
+            assert self.data.shape[0] == 2*self.data.shape[1], (
+                "LatLong format width should be twice the height")
 
     def __hash__(self):
         """Provide a hash on the environment map"""
