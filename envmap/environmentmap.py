@@ -234,7 +234,6 @@ class EnvironmentMap:
         :type targetFormat: integer
 
         """
-        import time
         assert targetFormat.lower() in SUPPORTED_FORMATS, (
             "Unknown format: {}".format(targetFormat))
 
@@ -242,18 +241,11 @@ class EnvironmentMap:
             # By default, number of rows
             targetDim = self.data.shape[0]
 
-        a = time.time()
         eTmp = EnvironmentMap(targetDim, targetFormat)
-        b = time.time()
         dx, dy, dz, valid = eTmp.worldCoordinates()
-        c = time.time()
         u, v = self.world2image(dx, dy, dz)
-        d = time.time()
         self.format_ = targetFormat.lower()
         self.interpolate(u, v, valid)
-        e = time.time()
-
-        #import pdb; pdb.set_trace()
 
         return self
 
