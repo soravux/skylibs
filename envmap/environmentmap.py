@@ -43,12 +43,6 @@ GROUND_ALBEDOS = {
 
 
 class EnvironmentMap:
-    """
-.. todo::
-
-    * Move world2* and *2world to transforms.py
-
-    """
     def __init__(self, im, format_=None, copy=True, color=True):
         """
         Creates an EnvironmentMap.
