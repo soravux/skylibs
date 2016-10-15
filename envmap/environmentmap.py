@@ -49,13 +49,16 @@ class EnvironmentMap:
     * Move world2* and *2world to transforms.py
 
     """
-    def __init__(self, im, format_=None, copy=True):
+    def __init__(self, im, format_=None, copy=True, color=True):
         """
         Creates an EnvironmentMap.
 
-        :param im: Image to be converted to an EnvironmentMap
+        :param im: Image path or data to be converted to an EnvironmentMap, or 
+                   the height of an empty EnvironmentMap.
         :param format_: EnvironmentMap format. Can be `Angular`, ...
         :param copy: When a numpy array is given, should it be copied.
+        :param color: When providing an integer, create an empty color or
+                      grayscale EnvironmentMap.
         :type im: float, numpy array
         :type format_: string
         :type copy: bool
@@ -81,7 +84,10 @@ class EnvironmentMap:
             elif self.format_ == 'cube':
                 self.data = np.zeros((im, round(3/4*im)))
             else:
-                self.data = np.zeros((im, im))
+                if color:
+                    self.data = np.zeros((im, im, 3))
+                else:
+                    self.data = np.zeros((im, im))
         elif type(im).__module__ == np.__name__:
             # We received a numpy array
             self.data = np.asarray(im, dtype='double')
