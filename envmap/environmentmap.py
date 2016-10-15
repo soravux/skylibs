@@ -298,6 +298,10 @@ class EnvironmentMap:
         """
         if not isinstance(targetSize, tuple):
             targetSize = (targetSize, targetSize)
+            if self.format_ == 'latlong':
+                targetSize = (targetSize, 2*targetSize)
+            if self.format_ == 'cube':
+                targetSize = (targetSize, round(3/4*targetSize))
 
         _size = []
         for i in range(2):
