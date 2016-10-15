@@ -96,9 +96,19 @@ def imwrite(filename, arr, **params):
     elif arr.dtype == np.float16:
         pixformat = 'HALF'
     else:
-        # Default : half precision float
-        pixformat = 'HALF'
-        warnings.warn("imwrite received an array with dtype={}, which cannot be saved in EXR format. Will fallback to HALF-PRECISION.".format(arr.dtype), RuntimeWarning)
+        # Default : Auto detect
+        the_max = np.abs(np.isfinite(arr)).max()
+        the_min = np.abs(np.isfinite(arr[arr > 0])).min()
+
+        if the_max <= 65504. and the_min >= 1e-7:
+            pixformat = 'HALF'
+        elif the_max < 3.402823e+38 and the_min >= 1.18e-38:
+            pixformat = 'FLOAT'
+        else:
+            raise Exception('Could not convert array into exr without loss of information '
+                            '(a value would be rounded to infinity or 0)')
+        warnings.warn("imwrite received an array with dtype={}, which cannot be saved in EXR format."
+                      "Will fallback to {}, which can represent all the values in the array.".format(arr.dtype, pixformat), RuntimeWarning)
 
     imath_pixformat = {'HALF' : Imath.PixelType(Imath.PixelType.HALF),
                         'FLOAT' : Imath.PixelType(Imath.PixelType.FLOAT),
