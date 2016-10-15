@@ -20,7 +20,7 @@ def findBrightestSpot(envmapInput, minpct=99.99):
     # Look for the value a the *minpct* percentage and threshold at this value
     # We do not take into account the pixels with a value of 0
     minval = np.percentile(intensityimg[envmapInput.data[..., 0] > 0], minpct)
-    thresholdmap = intensityimg > minval
+    thresholdmap = intensityimg >= minval
 
     # Label the regions in the thresholded image
     labelarray, n = scipy.ndimage.measurements.label(thresholdmap, np.ones((3, 3), dtype="bool8"))
