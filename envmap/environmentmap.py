@@ -49,14 +49,16 @@ class EnvironmentMap:
     * Move world2* and *2world to transforms.py
 
     """
-    def __init__(self, im, format_=None):
+    def __init__(self, im, format_=None, copy=True):
         """
         Creates an EnvironmentMap.
 
         :param im: Image to be converted to an EnvironmentMap
         :param format_: EnvironmentMap format. Can be `Angular`, ...
+        :param copy: When a numpy array is given, should it be copied.
         :type im: float, numpy array
         :type format_: string
+        :type copy: bool
         """
         if not format_ and isinstance(im, str):
             filename = os.path.splitext(im)[0]
@@ -83,6 +85,9 @@ class EnvironmentMap:
         elif type(im).__module__ == np.__name__:
             # We received a numpy array
             self.data = np.asarray(im, dtype='double')
+
+            if copy:
+                self.data = self.data.copy()
         else:
             raise Exception('Could not understand input. Please prove a '
                             'filename, a size or an image.')
