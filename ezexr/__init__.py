@@ -97,8 +97,9 @@ def imwrite(filename, arr, **params):
         pixformat = 'HALF'
     else:
         # Default : Auto detect
-        the_max = np.abs(np.isfinite(arr)).max()
-        the_min = np.abs(np.isfinite(arr[arr > 0])).min()
+        arr_fin = arr[np.isfinite(arr)]
+        the_max = np.abs(arr_fin).max()
+        the_min = np.abs(arr_fin[arr_fin > 0]).min()
 
         if the_max <= 65504. and the_min >= 1e-7:
             pixformat = 'HALF'
