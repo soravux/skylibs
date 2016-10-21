@@ -106,6 +106,10 @@ class EnvironmentMap:
         h.update(self.format_.encode('utf-8'))
         return int(h.hexdigest(), 16)
 
+    def copy(self):
+        """Returns a copy of the current environment map."""
+        return deepcopy(self)
+
     def solidAngles(self):
         """Computes the solid angle subtended by each pixel."""
         # If already computed, take it
