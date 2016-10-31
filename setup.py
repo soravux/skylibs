@@ -2,6 +2,9 @@ from setuptools import setup
 
 setup(
     name='skylibs',
+    author='Yannick Hold',
+    author_email='yannickhold@gmail.com',
+    url='https://github.com/soravux/skylibs',
     version='0.1',
     packages=['ezexr', 'envmap', 'hdrio', 'hdrtools', 'hdrtools/tonemapping', 'skydb', 'tools3d'],
     install_requires=['openexr>=1.3.0',
