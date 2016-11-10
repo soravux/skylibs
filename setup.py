@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='skylibs',
-    description=('Tools to read, write, perform projections and handle LDR/HDR environment maps (IBL).')
+    description=('Tools to read, write, perform projections and handle LDR/HDR environment maps (IBL).'),
     author='Yannick Hold',
     author_email='yannickhold@gmail.com',
     url='https://github.com/soravux/skylibs',
