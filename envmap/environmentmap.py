@@ -1,4 +1,3 @@
-import hashlib
 import os
 from copy import deepcopy
 
@@ -101,7 +100,9 @@ class EnvironmentMap:
                 "LatLong format width should be twice the height")
 
     def __hash__(self):
-        """Provide a hash on the environment map"""
+        """Provide a hash of the environment map type and size.
+        Warning: doesn't take into account the data, just the type,
+                 and the size (useful for soldAngles)."""
         return hash((self.data.shape, self.format_))
 
     def copy(self):
