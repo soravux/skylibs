@@ -102,9 +102,7 @@ class EnvironmentMap:
 
     def __hash__(self):
         """Provide a hash on the environment map"""
-        h = hashlib.sha1(self.data.view(np.uint8))
-        h.update(self.format_.encode('utf-8'))
-        return int(h.hexdigest(), 16)
+        return hash((self.data.shape, self.format_))
 
     def copy(self):
         """Returns a copy of the current environment map."""
