@@ -30,24 +30,42 @@ def imsave(filename, data):
     imwrite(data, filename)
 
 
-def imread(filename):
+def imread(filename, format_="float32"):
+    """Reads an image. Supports exr, hdr, cr2, tiff, jpg, png and
+    everything SciPy/PIL supports.
+
+    :filename: file path.
+    :format_: format in which to return the value. If set to "native", the
+              native format of the file will be given (e.g. uint8 for jpg).
+    """
+    ldr = False
     _, ext = os.path.splitext(filename.lower())
+
     if ext == '.exr':
-        return ezexr.imread(filename)
+        im = ezexr.imread(filename)
     elif ext in ['.hdr', '.pic']:
-        return _hdr_read(filename)
+        im = _hdr_read(filename)
     elif ext in ['.cr2', '.nef', '.raw']:
-        return _raw_read(filename)
+        im = _raw_read(filename)
     elif ext in ['.tiff', '.tif']:
         try:
             import tifffile as tiff
         except ImportError:
             print('Install tifffile for better tiff support. Fallbacking to '
                   'scipy.')
+            im = scipy_io.imread(filename)
         else:
-            return tiff.imread(filename)
-    # default and fallback if a previous call failed
-    return scipy_io.imread(filename)
+            im = tiff.imread(filename)
+    else:
+        im = scipy_io.imread(filename)
+        ldr = True
+
+    if format_ == "native":
+        return im
+    elif ldr and not 'int' in format_:
+        return im.astype(format_) / 255.
+    else:
+        return im.astype(format_)
 
 
 def _raw_read(filename):
