@@ -16,6 +16,7 @@ def findBrightestSpot(envmapInput, minpct=99.99):
 
     # Intensity image
     intensityimg = 0.299 * filteredimg[..., 0] + 0.587 * filteredimg[..., 1] + 0.114 * filteredimg[..., 2]
+    intensityimg[~np.isfinite(intensityimg)] = 0
 
     # Look for the value a the *minpct* percentage and threshold at this value
     # We do not take into account the pixels with a value of 0
