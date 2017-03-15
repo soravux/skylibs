@@ -7,19 +7,23 @@ from pysolar import solar
 
 import envmap
 
-def findBrightestSpot(envmapInput, minpct=99.99):
+
+def findBrightestSpot(image, minpct=99.99):
     """
     Find the sun position (in pixels, in the current projection) using the image.
     """
     # Gaussian filter
-    filteredimg = scipy.ndimage.filters.gaussian_filter(envmapInput.data, (5, 5, 0))
+    filteredimg = scipy.ndimage.filters.gaussian_filter(image, (5, 5, 0))
 
     # Intensity image
-    intensityimg = 0.299 * filteredimg[..., 0] + 0.587 * filteredimg[..., 1] + 0.114 * filteredimg[..., 2]
+    if filteredimg.ndim == 2 or filteredimg.shape[2] > 1:
+        intensityimg = np.dot( filteredimg[:,:,:3], [.299, .587, .114] )
+    else:
+        intensityimg = filteredimg
 
     # Look for the value a the *minpct* percentage and threshold at this value
     # We do not take into account the pixels with a value of 0
-    minval = np.percentile(intensityimg[envmapInput.data[..., 0] > 0], minpct)
+    minval = np.percentile(intensityimg[intensityimg > 0], minpct)
     thresholdmap = intensityimg > minval
 
     # Label the regions in the thresholded image
@@ -28,14 +32,15 @@ def findBrightestSpot(envmapInput, minpct=99.99):
     # Find the size of each of them
     funcsize = lambda x: x.size
     patchsizes = scipy.ndimage.measurements.labeled_comprehension(intensityimg,
-                                                                     labelarray,
-                                                                     index=np.arange(1, n+1),
-                                                                     func=funcsize,
-                                                                     out_dtype=np.uint32,
-                                                                     default=0.0)
+                                                                  labelarray,
+                                                                  index=np.arange(1, n+1),
+                                                                  func=funcsize,
+                                                                  out_dtype=np.uint32,
+                                                                  default=0.0)
 
     # Find the biggest one (we must add 1 because the label 0 is the background)
     biggestPatchIdx = np.argmax(patchsizes) + 1
+
     # Obtain the center of mass of the said biggest patch (we suppose that it is the sun)
     centerpos = scipy.ndimage.measurements.center_of_mass(intensityimg, labelarray, biggestPatchIdx)
 
@@ -47,7 +52,7 @@ def sunPosFromEnvmap(envmapInput):
     Find the azimuth and elevation of the sun using the environnement map provided.
     Return a tuple containing (elevation, azimuth)
     """
-    c = findBrightestSpot(envmapInput)
+    c = findBrightestSpot(envmapInput.data)
     u, v = c[1] / envmapInput.data.shape[1], c[0] / envmapInput.data.shape[0]
 
     x, y, z, _ = envmapInput.image2world(u, v)
