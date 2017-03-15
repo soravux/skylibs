@@ -20,8 +20,8 @@ def world2angular(x, y, z):
     # world -> angular
     denum = (2 * np.pi * np.sqrt(x**2 + y**2)) + eps
     rAngular = np.arccos(-z) / denum
-    v = 1 / 2 - rAngular * y
-    u = 1 / 2 + rAngular * x
+    v = 1. / 2 - rAngular * y
+    u = 1. / 2 + rAngular * x
     return u, v
 
 
@@ -85,8 +85,8 @@ def world2skyangular(x, y, z):
 
     r = phiAngular / (np.pi / 2)
 
-    u = r * np.sin(thetaAngular) / 2 + 1 / 2
-    v = 1 / 2 - r * np.cos(thetaAngular) / 2
+    u = 1. / 2 + r * np.sin(thetaAngular) / 2 
+    v = 1. / 2 - r * np.cos(thetaAngular) / 2
 
     return u, v
 

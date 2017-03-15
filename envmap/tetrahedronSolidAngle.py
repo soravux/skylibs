@@ -19,9 +19,9 @@ def tetrahedronSolidAngle(a, b, c, lhuillier=True):
         ----------
         Jean-Francois Lalonde
     """
-    assert(a.shape[0] == 3, 'a must be a 3xN matrix');
-    assert(b.shape[0] == 3, 'b must be a 3xN matrix');
-    assert(c.shape[0] == 3, 'c must be a 3xN matrix');
+    assert a.shape[0] == 3, 'a must be a 3xN matrix'
+    assert b.shape[0] == 3, 'b must be a 3xN matrix'
+    assert c.shape[0] == 3, 'c must be a 3xN matrix'
 
     if lhuillier:
         theta_a = arccos(np.sum(b*c, 0))

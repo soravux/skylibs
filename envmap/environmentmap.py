@@ -1,4 +1,4 @@
-import hashlib
+import os
 from copy import deepcopy
 
 import numpy as np
@@ -8,6 +8,7 @@ from hdrio import imread
 
 from .tetrahedronSolidAngle import tetrahedronSolidAngle
 from .projections import *
+from .xmlhelper import EnvmapXMLParser
 
 
 SUPPORTED_FORMATS = [
@@ -27,11 +28,11 @@ ROTATION_FORMATS = [
 
 
 #From Dan:
-#  I've generated these using the monochromatic albedo values from here: 
-#  http://agsys.cra-cin.it/tools/solarradiation/help/Albedo.html  
-#  (they cite some books as references). Since these monochromatic, 
-#  I got unscaled r, g, b values from internet textures and scaled them 
-#  so that their mean matches the expected monochromatic albedo. Hopefully 
+#  I've generated these using the monochromatic albedo values from here:
+#  http://agsys.cra-cin.it/tools/solarradiation/help/Albedo.html
+#  (they cite some books as references). Since these monochromatic,
+#  I got unscaled r, g, b values from internet textures and scaled them
+#  so that their mean matches the expected monochromatic albedo. Hopefully
 #  this is a valid thing to do.
 GROUND_ALBEDOS = {
     "GreenGrass": np.array([ 0.291801, 0.344855, 0.113344 ]).T,
@@ -41,21 +42,25 @@ GROUND_ALBEDOS = {
 
 
 class EnvironmentMap:
-    """
-.. todo::
-
-    * Move world2* and *2world to transforms.py
-
-    """
-    def __init__(self, im, format_):
+    def __init__(self, im, format_=None, copy=True, color=True):
         """
         Creates an EnvironmentMap.
 
-        :param im: Image to be converted to an EnvironmentMap
+        :param im: Image path or data to be converted to an EnvironmentMap, or 
+                   the height of an empty EnvironmentMap.
         :param format_: EnvironmentMap format. Can be `Angular`, ...
+        :param copy: When a numpy array is given, should it be copied.
+        :param color: When providing an integer, create an empty color or
+                      grayscale EnvironmentMap.
         :type im: float, numpy array
         :type format_: string
+        :type copy: bool
         """
+        if not format_ and isinstance(im, str):
+            filename = os.path.splitext(im)[0]
+            metadata = EnvmapXMLParser("{}.meta.xml".format(filename))
+            format_ = metadata.getFormat()
+
         assert format_.lower() in SUPPORTED_FORMATS, (
             "Unknown format: {}".format(format_))
 
@@ -72,10 +77,16 @@ class EnvironmentMap:
             elif self.format_ == 'cube':
                 self.data = np.zeros((im, round(3/4*im)))
             else:
-                self.data = np.zeros((im, im))
+                if color:
+                    self.data = np.zeros((im, im, 3))
+                else:
+                    self.data = np.zeros((im, im))
         elif type(im).__module__ == np.__name__:
             # We received a numpy array
             self.data = np.asarray(im, dtype='double')
+
+            if copy:
+                self.data = self.data.copy()
         else:
             raise Exception('Could not understand input. Please prove a '
                             'filename, a size or an image.')
@@ -84,12 +95,19 @@ class EnvironmentMap:
         if self.format_ in ['sphere', 'angular', 'skysphere', 'skyangular']:
             assert self.data.shape[0] == self.data.shape[1], (
                 "Sphere/Angular formats must have the same width/height")
+        elif self.format_ == 'latlong':
+            assert 2*self.data.shape[0] == self.data.shape[1], (
+                "LatLong format width should be twice the height")
 
     def __hash__(self):
-        """Provide a hash on the environment map"""
-        h = hashlib.sha1(self.data.view(np.uint8))
-        h.update(self.format_.encode('utf-8'))
-        return int(h.hexdigest(), 16)
+        """Provide a hash of the environment map type and size.
+        Warning: doesn't take into account the data, just the type,
+                 and the size (useful for soldAngles)."""
+        return hash((self.data.shape, self.format_))
+
+    def copy(self):
+        """Returns a copy of the current environment map."""
+        return deepcopy(self)
 
     def solidAngles(self):
         """Computes the solid angle subtended by each pixel."""
@@ -112,11 +130,11 @@ class EnvironmentMap:
         d = np.vstack((dx[1:,1:].ravel(), dy[1:,1:].ravel(), dz[1:,1:].ravel()))
         omega = tetrahedronSolidAngle(a, b, c)
         omega += tetrahedronSolidAngle(a, b, d)
-        
+
         # Get pixel center coordinates
         _, _, _, valid = self.worldCoordinates()
         omega[~valid.ravel()] = np.nan
-        
+
         self._solidAngles = omega.reshape(self.data.shape[0:2])
         self._solidAngles_hash = hash(self)
         return self._solidAngles
@@ -164,7 +182,11 @@ class EnvironmentMap:
         target = np.vstack((v.flatten()*self.data.shape[0], u.flatten()*self.data.shape[1]))
 
         # Repeat the first and last rows/columns for interpolation purposes
-        h, w, d = self.data.shape
+        if len(self.data.shape) == 2:
+            h, w = self.data.shape
+            d = 1
+        else:
+            h, w, d = self.data.shape
         source = np.empty((h + 2, w + 2, d))
         source[1:-1, 1:-1] = self.data
         source[0,1:-1] = self.data[0,:]; source[0,0] = self.data[0,0]; source[0,-1] = self.data[0,-1]
@@ -172,11 +194,14 @@ class EnvironmentMap:
         source[1:-1,0] = self.data[:,0]
         source[1:-1,-1] = self.data[:,-1]
 
+        # To avoid displacement due to the padding
+        u += 1./self.data.shape[1]
+        v += 1/self.data.shape[0]
+
         data = np.zeros((u.shape[0], u.shape[1], d))
         for c in range(d):
-            interpdata = map_coordinates(source[:,:,c], target, cval=np.nan, order=1)
-            data[:,:,c] = interpdata.reshape(data.shape[0], data.shape[1])
-        self.data = np.squeeze(data)
+            map_coordinates(source[:,:,c], target, output=data[:,:,c].reshape(-1), cval=np.nan, order=1, prefilter=False)
+        self.data = data
 
         # In original: valid &= ~isnan(data)...
         # I haven't included it here because it may mask potential problems...
@@ -191,8 +216,14 @@ class EnvironmentMap:
 
         self.backgroundColor = np.asarray(color)
 
-        for c in range(self.data.shape[2]):
-            self.data[:,:,c][np.invert(valid)] = self.backgroundColor[c]
+        grayscale = len(self.data.shape) == 2
+
+        if grayscale:
+            self.data[:,:][np.invert(valid)] = self.backgroundColor.dot(np.array([0.299, 0.587, 0.114]).T)
+        else:
+            nb_channels = self.data.shape[2]
+            for c in range(nb_channels):
+                self.data[:,:,c][np.invert(valid)] = self.backgroundColor[c]
 
         return self
 
@@ -204,10 +235,6 @@ class EnvironmentMap:
         :param targetDim: Target dimension.
         :type targetFormat: string
         :type targetFormat: integer
-
-.. todo::
-
-    Support targetDim
 
         """
         assert targetFormat.lower() in SUPPORTED_FORMATS, (
@@ -260,6 +287,10 @@ class EnvironmentMap:
         """
         if not isinstance(targetSize, tuple):
             targetSize = (targetSize, targetSize)
+            if self.format_ == 'latlong':
+                targetSize = (targetSize, 2*targetSize)
+            if self.format_ == 'cube':
+                targetSize = (targetSize, round(3/4*targetSize))
 
         _size = []
         for i in range(2):
@@ -301,8 +332,7 @@ class EnvironmentMap:
         solidAngles /= np.nansum(solidAngles) # Normalize to 1
         normals /= np.linalg.norm(normals, 1)
 
-        x, y, z, valid = self.worldCoordinates()
-        valid = valid & ~np.isnan(solidAngles)
+        x, y, z, _ = self.worldCoordinates()
 
         xyz = np.dstack((x, y, z))
 

@@ -4,10 +4,16 @@ import subprocess
 import numpy as np
 from scipy import misc as scipy_io
 
+
 try:
     import ezexr
 except ImportError as e:
     print("Could not import exr module:", e)
+
+try:
+    import imageio
+except ImportError as e:
+    print("Could not import hdr module:", e)
 
 
 def imwrite(data, filename):
@@ -24,24 +30,42 @@ def imsave(filename, data):
     imwrite(data, filename)
 
 
-def imread(filename):
+def imread(filename, format_="float32"):
+    """Reads an image. Supports exr, hdr, cr2, tiff, jpg, png and
+    everything SciPy/PIL supports.
+
+    :filename: file path.
+    :format_: format in which to return the value. If set to "native", the
+              native format of the file will be given (e.g. uint8 for jpg).
+    """
+    ldr = False
     _, ext = os.path.splitext(filename.lower())
+
     if ext == '.exr':
-        return ezexr.imread(filename)
+        im = ezexr.imread(filename)
     elif ext in ['.hdr', '.pic']:
-        return _hdr_read(filename)
+        im = _hdr_read(filename)
     elif ext in ['.cr2', '.nef', '.raw']:
-        return _raw_read(filename)
+        im = _raw_read(filename)
     elif ext in ['.tiff', '.tif']:
         try:
             import tifffile as tiff
         except ImportError:
             print('Install tifffile for better tiff support. Fallbacking to '
                   'scipy.')
+            im = scipy_io.imread(filename)
         else:
-            return tiff.imread(filename)
-    # default and fallback if a previous call failed
-    return scipy_io.imread(filename)
+            im = tiff.imread(filename)
+    else:
+        im = scipy_io.imread(filename)
+        ldr = True
+
+    if format_ == "native":
+        return im
+    elif ldr and not 'int' in format_:
+        return im.astype(format_) / 255.
+    else:
+        return im.astype(format_)
 
 
 def _raw_read(filename):
@@ -61,58 +85,19 @@ def _raw_read(filename):
         return tiff.imread(target_file)
 
 
-def _hdr_write(filename, data):
-    """Reference: https://gist.github.com/edouardp/3089602 """
-    # Assumes you have a np.array((height,width,3), dtype=float) as your HDR image
-    data = data.astype('float')
-     
-    with open(filename, "wb") as f:
-        f.write(b"#?RADIANCE\n# Made with SkyLibs\nFORMAT=32-bit_rle_rgbe\n\n")
-        f.write(bytes("-Y {0} +X {1}\n".format(data.shape[0], data.shape[1]), encoding="ascii"))
+def _hdr_write(filename, data, **kwargs):
+    """Write a Radiance hdr file.
+Refer to the ImageIO API ( http://imageio.readthedocs.io/en/latest/userapi.html
+) for parameter description."""
 
-        brightest = np.maximum(np.maximum(data[...,0], data[...,1]), data[...,2])
-        mantissa = np.zeros_like(brightest)
-        exponent = np.zeros_like(brightest)
-        np.frexp(brightest, mantissa, exponent)
-        scaled_mantissa = mantissa * 256.0 / brightest
-        rgbe = np.zeros((data.shape[0], data.shape[1], 4), dtype=np.uint8)
-        rgbe[...,0:3] = np.around(data[...,0:3] * scaled_mantissa[...,None])
-        rgbe[...,3] = np.around(exponent + 128)
-
-        rgbe.flatten().tofile(f)
+    imageio.imwrite(filename, data, **kwargs)
 
 
-def _hdr_read(filename):
-    """Read hdr file.
-
-.. TODO:
-   
-    * Support axis other than -Y +X
-"""
-    with open(filename, "rb") as f:
-        MAGIC = f.readline().strip()
-        assert MAGIC == b'#?RADIANCE', "Wrong header found in {}".format(filename)
-
-        comments = b""
-        while comments[:6] != b"FORMAT":
-            comments = f.readline().strip()
-            assert comments[:3] != b"-Y ", "Could not find data format"
-        assert comments == b'FORMAT=32-bit_rle_rgbe', "Format not supported"
-
-        while comments[:3] != b"-Y ":
-            comments = f.readline().strip()
-        _, height, _, width = comments.decode("ascii").split(" ")
-        height, width = int(height), int(width)
-
-        rgbe = np.fromfile(f, dtype=np.uint8).reshape((height, width, 4))
-        rgb = np.empty((height, width, 3), dtype=np.float)
-        rgb[...,0] = np.ldexp(rgbe[...,0], rgbe[...,3].astype('int') - 128)
-        rgb[...,1] = np.ldexp(rgbe[...,1], rgbe[...,3].astype('int') - 128)
-        rgb[...,2] = np.ldexp(rgbe[...,2], rgbe[...,3].astype('int') - 128)
-        # TODO: This will rescale all the values to be in [0, 1]. Find a way to retrieve the original values.
-        rgb /= rgb.max()
-
-    return rgb
+def _hdr_read(filename, **kwargs):
+    """Read a Radiance hdr file.
+Refer to the ImageIO API ( http://imageio.readthedocs.io/en/latest/userapi.html
+) for parameter description."""
+    return imageio.imread(filename, **kwargs)
 
 
 __all__ = ['imwrite', 'imsave', 'imread']

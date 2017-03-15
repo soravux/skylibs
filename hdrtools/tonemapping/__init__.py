@@ -12,8 +12,8 @@ rgb2xyz_mat = np.array([[0.412453, 0.357580, 0.180423],
                          [0.019334, 0.119193, 0.950227]], dtype="float32")
 xyz2rgb_mat = linalg.inv(rgb2xyz_mat)
 
-_availToneMappers = subprocess.check_output(["compgen -c pfstmo"], 
-                                            stderr=subprocess.STDOUT, 
+_availToneMappers = subprocess.check_output(["/bin/bash -c \"compgen -c pfstmo\""],
+                                            stderr=subprocess.STDOUT,
                                             shell=True).decode('ascii').strip().split("\n")
 
 def convertToXYZ(rgbimg):
@@ -47,13 +47,13 @@ def writePFS(hdrimg):
     including a valid header.
     The hdrimg should be a valid RGB image (HDR or not).
     """
-    header = "PFS1\n{} {}\n{}\n0\nX\n0\nY\n0\nZ\n0\nENDH".format(hdrimg.shape[1], 
-                                                                    hdrimg.shape[0], 
+    header = "PFS1\n{} {}\n{}\n0\nX\n0\nY\n0\nZ\n0\nENDH".format(hdrimg.shape[1],
+                                                                    hdrimg.shape[0],
                                                                     hdrimg.shape[2])
     b = bytes(header, "ascii")
 
     imgXYZ = convertToXYZ(hdrimg)
-    b += imgXYZ.transpose(2, 1, 0).tobytes()
+    b += imgXYZ.transpose(2, 1, 0).tostring()
     return b
 
 
@@ -116,4 +116,3 @@ def getAvailableToneMappers():
 # Dynamically create the tone mapping functions
 for tm,tmName in zip(_availToneMappers, getAvailableToneMappers()):
     setattr(sys.modules[__name__], tmName, partial(_tonemapping, exec_=tm))
-
