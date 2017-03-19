@@ -14,6 +14,16 @@ def world2latlong(x, y, z):
     return u, v
 
 
+def world2skylatlong(x, y, z):
+    """Get the (u, v) coordinates of the point defined by (x, y, z) for
+    a sky-latitude-longitude map (the zenith hemisphere of a latlong map)."""
+    u = 1 + (1 / np.pi) * np.arctan2(x, -z)
+    v = (1 / np.pi) * np.arccos(y) / 2
+    # because we want [0,1] interval
+    u = u / 2
+    return u, v
+
+
 def world2angular(x, y, z):
     """Get the (u, v) coordinates of the point defined by (x, y, z) for
     an angular map."""
@@ -33,6 +43,23 @@ def latlong2world(u, v):
     # lat-long -> world
     thetaLatLong = np.pi * (u - 1)
     phiLatLong = np.pi * v
+
+    x = np.sin(phiLatLong) * np.sin(thetaLatLong)
+    y = np.cos(phiLatLong)
+    z = -np.sin(phiLatLong) * np.cos(thetaLatLong)
+
+    valid = np.ones(x.shape, dtype='bool')
+    return x, y, z, valid
+
+
+def skylatlong2world(u, v):
+    """Get the (x, y, z, valid) coordinates of the point defined by (u, v)
+    for a latlong map."""
+    u = u * 2
+
+    # lat-long -> world
+    thetaLatLong = np.pi * (u - 1)
+    phiLatLong = np.pi * v / 2
 
     x = np.sin(phiLatLong) * np.sin(thetaLatLong)
     y = np.cos(phiLatLong)

@@ -15,6 +15,7 @@ SUPPORTED_FORMATS = [
     'angular',
     'skyangular',
     'latlong',
+    'skylatlong',
     'sphere',
     'cube',
 ]
@@ -74,6 +75,8 @@ class EnvironmentMap:
             # We received a single scalar
             if self.format_ == 'latlong':
                 self.data = np.zeros((im, im*2))
+            elif self.format_ == 'skylatlong':
+                self.data = np.zeros((im, im*4))
             elif self.format_ == 'cube':
                 self.data = np.zeros((im, round(3/4*im)))
             else:
@@ -98,6 +101,9 @@ class EnvironmentMap:
         elif self.format_ == 'latlong':
             assert 2*self.data.shape[0] == self.data.shape[1], (
                 "LatLong format width should be twice the height")
+        elif self.format_ == 'skylatlong':
+            assert 4*self.data.shape[0] == self.data.shape[1], (
+                "SkyLatLong format width should be four times the height")
 
     def __hash__(self):
         """Provide a hash of the environment map type and size.
@@ -161,6 +167,7 @@ class EnvironmentMap:
             'angular': angular2world,
             'skyangular': skyangular2world,
             'latlong': latlong2world,
+            'skylatlong': skylatlong2world,
             'sphere': sphere2world,
             'cube': cube2world,
         }.get(self.format_)
@@ -172,6 +179,7 @@ class EnvironmentMap:
             'angular': world2angular,
             'skyangular': world2skyangular,
             'latlong': world2latlong,
+            'skylatlong': world2skylatlong,
             'sphere': world2sphere,
             'cube': world2cube,
         }.get(self.format_)
@@ -289,6 +297,8 @@ class EnvironmentMap:
             targetSize = (targetSize, targetSize)
             if self.format_ == 'latlong':
                 targetSize = (targetSize, 2*targetSize)
+            if self.format_ == 'skylatlong':
+                targetSize = (targetSize, 4*targetSize)
             if self.format_ == 'cube':
                 targetSize = (targetSize, round(3/4*targetSize))
 
