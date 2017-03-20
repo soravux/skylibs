@@ -1,12 +1,43 @@
+import os
 import sys
 import array
+import time
 import warnings
 
-import OpenEXR
-import Imath
-import time
-
 import numpy as np
+
+if os.name == 'nt':
+    from cffi import FFI
+    ffi = FFI()
+    ffi.cdef("""
+        float* readEXRfloat(const char fileName[], char ***channel_names, int *width, int *height, int *nb_channels);
+    """)
+    to_precache = ["libzlib.dll", "libHalf.dll", "libIex-2_2.dll",
+                   "libIlmThread-2_2.dll", "libImath-2_2.dll", "libIlmImf-2_2.dll"]
+    [ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), x)) for x in to_precache]
+    C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "wrapper.dll"))
+else:
+    import OpenEXR
+    import Imath
+
+
+def imread_raw_windows_(filename):
+    width = ffi.new("int*")
+    height = ffi.new("int*")
+    nb_channels = ffi.new("int*")
+
+    cn = ffi.new("char***", ffi.new("char**", ffi.NULL))
+    fn = ffi.new("char[]", bytes(filename, 'ascii'))
+    ret = C.readEXRfloat(fn, cn, width, height, nb_channels)
+
+    width = width[0]
+    height = height[0]
+    nb_channels = nb_channels[0]
+
+    vals = np.frombuffer(ffi.buffer(ret, width*height*nb_channels*4), dtype=np.float32).reshape([height, width, nb_channels])
+    channels = [ffi.string(cn[0][i]).decode('ascii') for i in range(nb_channels)]
+
+    return vals, channels
 
 
 def imread(filename, bufferImage=None):
@@ -15,12 +46,20 @@ def imread(filename, bufferImage=None):
     If bufferImage is not None, then it should be a numpy array
     of a sufficient size to contain the data.
     If it is None, a new array is created and returned.
-
-.. todo::
-
-    * Support Alpha channel (and others)
-
     """
+    # Handling Windows
+    if os.name == 'nt':
+        if bufferImage:
+            warnings.warn("Buffer passing not supported yet on Windows", RuntimeWarning)
+        im, ch = imread_raw_windows_(filename)
+        if len(ch) == 1:
+            return im
+
+        channelsToUse = ('R', 'G', 'B', 'A') if 'A' in ch else ('R', 'G', 'B')
+        ordering = [ch.index(x) for x in channelsToUse]
+
+        return im[:,:,ordering]
+
     # Open the input file
     f = OpenEXR.InputFile(filename)
 
@@ -33,11 +72,12 @@ def imread(filename, bufferImage=None):
 
     # Use the attribute "v" of PixelType objects because they have no __eq__
     pixformat_mapping = {Imath.PixelType(Imath.PixelType.FLOAT).v: np.float32,
-                            Imath.PixelType(Imath.PixelType.HALF).v: np.float16,
-                            Imath.PixelType(Imath.PixelType.UINT).v: np.uint32}
+                         Imath.PixelType(Imath.PixelType.HALF).v: np.float16,
+                         Imath.PixelType(Imath.PixelType.UINT).v: np.uint32}
     
     # Get the number of channels
     nc = len(header['channels'])
+
     # Check the data type
     dtGlobal = list(header['channels'].values())[0].type
     
