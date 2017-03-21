@@ -12,7 +12,7 @@ if os.name == 'nt':
     ffi.cdef("""
         float* readEXRfloat(const char fileName[], char ***channel_names, int *width, int *height, int *nb_channels);
     """)
-    to_precache = ["libzlib.dll", "libHalf.dll", "libIex-2_2.dll",
+    to_precache = ["libstdc++-6.dll", "libgcc_s_sjlj-1.dll", "libzlib.dll", "libHalf.dll", "libIex-2_2.dll",
                    "libIlmThread-2_2.dll", "libImath-2_2.dll", "libIlmImf-2_2.dll"]
     [ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), x)) for x in to_precache]
     C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "wrapper.dll"))

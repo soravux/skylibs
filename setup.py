@@ -11,7 +11,9 @@ if os.name == 'nt':
                               "libIlmThread-2_2.dll",
                               "libImath-2_2.dll",
                               "libzlib.dll",
-                              "wrapper.dll"]}
+                              "wrapper.dll",
+                              "libgcc_s_sjlj-1.dll",
+                              "libstdc++-6.dll"]}
 else:
     extra_requires = ['openexr>=1.3.0']
     dependency_links = ['https://github.com/jamesbowman/openexrpython/tarball/master#egg=openexr-1.3.0']
