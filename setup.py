@@ -29,6 +29,6 @@ setup(
     packages=['ezexr', 'envmap', 'hdrio', 'hdrtools', 'hdrtools/tonemapping', 'skydb', 'tools3d'],
     package_data=package_data,
     include_package_data=True,
-    install_requires=['imageio>=1.6'].extend(extra_requires),
+    install_requires=['imageio>=1.6', 'tqdm'].extend(extra_requires),
     dependency_links=dependency_links,
 )

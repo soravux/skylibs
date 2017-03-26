@@ -327,8 +327,7 @@ class EnvironmentMap:
         return self
 
     def setHemisphereAlbedo(self, normal, value):
-        """Sets an whole hemisphere defined by `normal` to a given `value`
-        (weighted by its solid angle).
+        """Sets an whole hemisphere defined by `normal` to a given `value`.
         Useful to set the ground albedo."""
         raise NotImplementedError()
 
