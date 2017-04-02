@@ -91,7 +91,7 @@ class EnvironmentMap:
             if copy:
                 self.data = self.data.copy()
         else:
-            raise Exception('Could not understand input. Please prove a '
+            raise Exception('Could not understand input. Please provide a '
                             'filename, a size or an image.')
 
         # Ensure size is valid
