@@ -187,7 +187,7 @@ class EnvironmentMap:
 
     def interpolate(self, u, v, valid, method='linear'):
         """"Interpolate to get the desired pixel values."""
-        target = np.vstack((v.flatten()*self.data.shape[0], u.flatten()*self.data.shape[1]))
+        target = np.vstack(((v.flatten()+.5)*self.data.shape[0], (u.flatten()+.5)*self.data.shape[1]))
 
         # Repeat the first and last rows/columns for interpolation purposes
         if len(self.data.shape) == 2:
