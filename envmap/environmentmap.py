@@ -135,7 +135,7 @@ class EnvironmentMap:
         c = np.vstack((dx[1:,:-1].ravel(), dy[1:,:-1].ravel(), dz[1:,:-1].ravel()))
         d = np.vstack((dx[1:,1:].ravel(), dy[1:,1:].ravel(), dz[1:,1:].ravel()))
         omega = tetrahedronSolidAngle(a, b, c)
-        omega += tetrahedronSolidAngle(a, b, d)
+        omega += tetrahedronSolidAngle(b, c, d)
 
         # Get pixel center coordinates
         _, _, _, valid = self.worldCoordinates()
