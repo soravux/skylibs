@@ -74,11 +74,20 @@ class EnvironmentMap:
         elif isinstance(im, int):
             # We received a single scalar
             if self.format_ == 'latlong':
-                self.data = np.zeros((im, im*2))
+                if color:
+                    self.data = np.zeros((im, im*2, 3))
+                else:
+                    self.data = np.zeros((im, im*2))
             elif self.format_ == 'skylatlong':
-                self.data = np.zeros((im, im*4))
+                if color:
+                    self.data = np.zeros((im, im*4, 3))
+                else:
+                    self.data = np.zeros((im, im*4))
             elif self.format_ == 'cube':
-                self.data = np.zeros((im, round(3/4*im)))
+                if color:
+                    self.data = np.zeros((im, round(3/4*im), 3))
+                else:
+                    self.data = np.zeros((im, round(3/4*im)))
             else:
                 if color:
                     self.data = np.zeros((im, im, 3))
