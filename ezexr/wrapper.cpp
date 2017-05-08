@@ -110,6 +110,9 @@ extern "C" {
                                     1, 1, // x/y sampling
                                     0.0)); // fillValue
                     break;
+                default:
+                    throw 1;
+                    break;
                 }
 
             (*nb_channels)++;
@@ -137,6 +140,9 @@ extern "C" {
                         case FLOAT:
                             retval[(k*(*width)+j)*(*nb_channels) + it] = (*arrays[it].f)[k][j];
                             break;
+                        default:
+                            throw 1;
+                            break;
                     }
                     it++;
                 }
@@ -156,9 +162,37 @@ extern "C" {
                 case FLOAT:
                     delete arrays[it].f;
                     break;
+                default:
+                    throw 1;
+                    break;
             }
             it++;
         }
         return retval;
+    }
+
+    void writeEXRfloat(const char filename[], const char *channel_names[], const float *data, int width, int height, int nb_channels)
+    {
+        Header header (width, height);
+        FrameBuffer frameBuffer;
+
+        for (unsigned int i = 0; i < nb_channels; ++i) {
+            header.channels().insert (channel_names[i], Channel (FLOAT));
+        }
+
+        OutputFile file (filename, header);
+
+        for (unsigned int i = 0; i < nb_channels; ++i) {
+            frameBuffer.insert (channel_names[i], // name
+                        Slice (FLOAT, // type
+                            ((char *) data) + i*height*width*sizeof(*data), // base
+                            sizeof (*data) * 1, // xStride
+                            sizeof (*data) * (width))); // yStride
+        }
+
+        file.setFrameBuffer(frameBuffer);
+        file.writePixels(height);
+
+        return;
     }
 }

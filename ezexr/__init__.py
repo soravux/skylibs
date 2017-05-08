@@ -6,22 +6,34 @@ import warnings
 
 import numpy as np
 
+cffi_def = """
+float* readEXRfloat(const char filename[], char ***channel_names, int *width, int *height, int *nb_channels);
+float* writeEXRfloat(const char filename[], const char *channel_names[], const float *data, int width, int height, int nb_channels);
+"""
+
 if os.name == 'nt':
     from cffi import FFI
     ffi = FFI()
-    ffi.cdef("""
-        float* readEXRfloat(const char fileName[], char ***channel_names, int *width, int *height, int *nb_channels);
-    """)
+    ffi.cdef(cffi_def)
     to_precache = ["libstdc++-6.dll", "libgcc_s_sjlj-1.dll", "libzlib.dll", "libHalf.dll", "libIex-2_2.dll",
                    "libIlmThread-2_2.dll", "libImath-2_2.dll", "libIlmImf-2_2.dll"]
     [ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), x)) for x in to_precache]
     C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "wrapper.dll"))
 else:
-    import OpenEXR
-    import Imath
+    try:
+        import OpenEXR
+        import Imath
+    except ImportError:
+        if sys.platform == "darwin":
+            from cffi import FFI
+            ffi = FFI()
+            ffi.cdef(cffi_def)
+            C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "wrapper.dylib"))
+        else:
+            raise
 
 
-def imread_raw_windows_(filename):
+def imread_raw_custom_(filename):
     width = ffi.new("int*")
     height = ffi.new("int*")
     nb_channels = ffi.new("int*")
@@ -47,11 +59,11 @@ def imread(filename, bufferImage=None):
     of a sufficient size to contain the data.
     If it is None, a new array is created and returned.
     """
-    # Handling Windows
-    if os.name == 'nt':
+    # Check if we should use the custom wrapper
+    if 'OpenEXR' not in globals():
         if bufferImage:
-            warnings.warn("Buffer passing not supported yet on Windows", RuntimeWarning)
-        im, ch = imread_raw_windows_(filename)
+            warnings.warn("Buffer passing not supported yet with custom wrapper", RuntimeWarning)
+        im, ch = imread_raw_custom_(filename)
         if len(ch) == 1:
             return im
 
@@ -114,7 +126,33 @@ def imwrite(filename, arr, **params):
       Test it
 
     """
-    h, w, d = arr.shape
+    if arr.ndim == 3:
+        h, w, d = arr.shape
+    elif arr.ndim == 2:
+        h, w = arr.shape
+        d = 1
+    else:
+        raise Exception("Could not understand dimensions in array.")
+
+    # Check if we should use the custom wrapper
+    if 'OpenEXR' not in globals():
+        if d == 1:
+            cl = "Y"
+        elif d == 3:
+            cl = "RGB"
+        elif d == 4:
+            cl = "RGBA"
+        cl = [ffi.new("char*", bytes(x, "ascii")) for x in cl]
+
+        #import pdb; pdb.set_trace()
+        fn = ffi.new("char[]", bytes(filename, 'ascii'))
+        cn = ffi.new("char*[]", cl)
+        data_np = np.ascontiguousarray(arr.transpose([2,0,1]).astype("float32"))
+        data = ffi.cast("float*", data_np.ctypes.data)
+        print(fn, cn, data, w, h, d)
+        C.writeEXRfloat(fn, cn, data, w, h, d)
+
+        return
 
     compression = 'PIZ' if not 'compression' in params or\
                      params['compression'] not in ('NONE', 'RLE', 'ZIPS', 'ZIP', 'PIZ', 'PXR24') else params['compression']
