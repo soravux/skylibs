@@ -125,7 +125,7 @@ def sphere2world(u, v):
     v = v * 2 - 1
 
     # sphere -> world
-    r = sqrt(u**2 + v**2)
+    r = np.sqrt(u**2 + v**2)
     theta = np.arctan2(u, -v)
 
     phi = np.zeros(theta.shape)
