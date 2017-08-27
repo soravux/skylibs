@@ -83,6 +83,7 @@ def ZfromN(normals, mask, Mx, My):
     A = np.vstack((Z.dot(Mx).toarray(),
                    Z.dot(My).toarray(),
                    Y.dot(Mx).toarray() - X.dot(My).toarray()))
+    # Is the 3rd constraint really useful?
 
     surf = np.linalg.lstsq(A, b)
     surf = surf[0]
