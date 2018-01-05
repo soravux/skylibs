@@ -52,15 +52,24 @@ def imread_raw_custom_(filename):
     return vals, channels
 
 
-def imread(filename, bufferImage=None):
+def imread(filename, bufferImage=None, rgb=True):
     """
-    Read an .exr image and returns a numpy matrix.
-    If bufferImage is not None, then it should be a numpy array
-    of a sufficient size to contain the data.
-    If it is None, a new array is created and returned.
+    Read an .exr image and returns a numpy matrix or a dict of channels.
+
+    Does not support .exr with varying channels sizes.
+
+    :bufferImage: If not None, then it should be a numpy array
+                  of a sufficient size to contain the data.
+                  If it is None, a new array is created and returned.
+    :rgb: If True: tries to get the RGB(A) channels as an image
+          If False: Returns all channels independently
+          If "hybrid": "<identifier>.[R|G|B|A|X|Y|Z]" -> merged to an image
     """
     # Check if we should use the custom wrapper
     if 'OpenEXR' not in globals():
+        if rgb is not True:
+            raise NotImplemented()
+
         if bufferImage:
             warnings.warn("Buffer passing not supported yet with custom wrapper", RuntimeWarning)
         im, ch = imread_raw_custom_(filename)
@@ -86,29 +95,58 @@ def imread(filename, bufferImage=None):
     pixformat_mapping = {Imath.PixelType(Imath.PixelType.FLOAT).v: np.float32,
                          Imath.PixelType(Imath.PixelType.HALF).v: np.float16,
                          Imath.PixelType(Imath.PixelType.UINT).v: np.uint32}
-    
+
     # Get the number of channels
     nc = len(header['channels'])
 
     # Check the data type
     dtGlobal = list(header['channels'].values())[0].type
-    
-    # Create the read buffer if needed
-    data = bufferImage if bufferImage is not None else np.empty((h, w, nc), dtype=pixformat_mapping[dtGlobal.v])
-        
-    if nc == 1:  # Greyscale
-        cname = list(header['channels'].keys())[0]
-        data = np.fromstring(f.channel(cname), dtype=pixformat_mapping[dtGlobal.v]).reshape(h, w, 1)
+
+    if rgb is True:
+        # Create the read buffer if needed
+        data = bufferImage if bufferImage is not None else np.empty((h, w, nc), dtype=pixformat_mapping[dtGlobal.v])
+
+        if nc == 1:  # Greyscale
+            cname = list(header['channels'].keys())[0]
+            data = np.fromstring(f.channel(cname), dtype=pixformat_mapping[dtGlobal.v]).reshape(h, w, 1)
+        else:
+            assert 'R' in header['channels'] and 'G' in header['channels'] and 'B' in header['channels'], "Not a grayscale image, but no RGB data!"
+            channelsToUse = ('R', 'G', 'B', 'A') if 'A' in header['channels'] else ('R', 'G', 'B')
+            nc = len(channelsToUse)
+            for i, c in enumerate(channelsToUse):
+                # Check the data type
+                dt = header['channels'][c].type
+                if dt.v != dtGlobal.v:
+                    data[:, :, i] = np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]).reshape((h, w)).astype(pixformat_mapping[dtGlobal.v])
+                else:
+                    data[:, :, i] = np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]).reshape((h, w))
     else:
-        assert 'R' in header['channels'] and 'G' in header['channels'] and 'B' in header['channels'], "Not a grayscale image, but no RGB data!"
-        channelsToUse = ('R', 'G', 'B', 'A') if 'A' in header['channels'] else ('R', 'G', 'B')
-        nc = len(channelsToUse)
-        for i,c in enumerate(channelsToUse):
-            # Check the data type
+        data = {}
+
+        for i, c in enumerate(header['channels']):
             dt = header['channels'][c].type
-            data[:, :, i] = np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]).reshape((h, w))
-            if dt.v != dtGlobal.v:
-                data[:, :, i] = data[:, :, i].astype(pixformat_mapping[dtGlobal.v])
+            data[c] = np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]).reshape((h, w))
+
+        if rgb == "hybrid":
+            ordering = {key: i for i, key in enumerate("RGBAXYZ")}
+
+            new_data = {}
+            for c in data.keys():
+
+                ident = c.split(".")[0]
+                try:
+                    chan = c.split(".")[1]
+                except IndexError:
+                    chan = "R"
+
+                if ident not in new_data:
+                    all_chans = [x.split(".")[1] for x in data if x.startswith(ident + ".")]
+                    nc = len(all_chans)
+                    new_data[ident] = np.empty((h, w, nc), dtype=np.float32)
+                    for i, chan in enumerate(sorted(all_chans, key=lambda v: ordering.get(v, len(ordering)))):
+                        new_data[ident][:,:,i] = data["{}.{}".format(ident, chan)].astype(new_data[ident].dtype)
+
+            data = new_data
     
     return data
 
