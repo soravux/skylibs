@@ -147,6 +147,8 @@ def imread(filename, bufferImage=None, rgb=True):
                         new_data[ident][:,:,i] = data["{}.{}".format(ident, chan)].astype(new_data[ident].dtype)
 
             data = new_data
+
+    f.close()
     
     return data
 
@@ -247,6 +249,8 @@ def imwrite(filename, arr, **params):
     # Write the three color channels to the output file
     out = OpenEXR.OutputFile(filename, outHeader)
     out.writePixels({'R' : R, 'G' : G, 'B' : B })
+
+    out.close()
 
 
 imsave = imwrite
