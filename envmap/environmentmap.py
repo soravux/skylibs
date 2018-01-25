@@ -114,6 +114,39 @@ class EnvironmentMap:
             assert 4*self.data.shape[0] == self.data.shape[1], (
                 "SkyLatLong format width should be four times the height")
 
+    @classmethod
+    def fromSkybox(cls, top, bottom, left, right, front, back):
+        """Create an environment map from skybox (cube) captures. Six images
+        must be provided, one for each side of the virtual cube. This function
+        will return an EnvironmentMap object.
+
+        All the images must be square (width==height), have the same size 
+        and number of channels.
+        """
+        basedim = top.shape[0]
+        channels = 1 if len(top.shape) == 2 else top.shape[2]
+
+        cube = np.zeros((basedim*4, basedim*3, channels), dtype=top.dtype)
+        cube[0:basedim, basedim:2*basedim] = top
+        cube[basedim:2*basedim, basedim:2*basedim] = front
+        cube[basedim:2*basedim, 2*basedim:3*basedim] = right
+        cube[3*basedim:4*basedim, basedim:2*basedim] = np.fliplr(np.flipud(back))
+        cube[1*basedim:2*basedim, 0:basedim] = left
+        cube[2*basedim:3*basedim, basedim:2*basedim] = bottom
+
+        # We ensure that there is no visible artifacts at the junction of the images
+        # due to the interpolation process
+        cube[0:basedim, basedim-1] = left[0,...] # top-left
+        cube[0:basedim, 2*basedim] = right[0,...][::-1] # top-right
+        cube[basedim-1, 2*basedim:3*basedim] = top[:,-1][::-1] #right-top
+        cube[2*basedim, 2*basedim:3*basedim] = bottom[:,-1] #right-bottom
+        cube[1*basedim-1, 0:basedim] = top[:,0] # left-top
+        cube[2*basedim, 0:basedim] = bottom[:,0][::-1] # left-bottom
+        cube[2*basedim:3*basedim, basedim-1] = left[-1,...][::-1] #bottom-left
+        cube[2*basedim:3*basedim, 2*basedim] = right[-1,...] #bottom-right
+
+        return cls(cube, format_="cube")
+
     def __hash__(self):
         """Provide a hash of the environment map type and size.
         Warning: doesn't take into account the data, just the type,
