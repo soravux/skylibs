@@ -4,6 +4,7 @@ from scipy.sparse.linalg import lsqr as sparse_lsqr
 
 
 from . import display
+from . import spharm
 
 
 def getMaskDerivatives(mask):

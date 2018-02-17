@@ -27,6 +27,11 @@ Internal exr reader and writer.
 - `NfromZ`: derivates the normals from a depth map `surf`.
 - `ZfromN`: Integrates a depth map from a normal map `normals`.
 - `display.plotDepth`: Creates a 3-subplot figure that shows the depth map `Z` and two side views.
+- `spharm.FSHT` Fash Spherical Harmonic Transform
+- `spharm.iFSHT` inverse Fash Spherical Harmonic Transform
+- `spharm.sphericalHarmonicTransform` Spherical Harmonic Transform
+- `spharm.inverseSphericalHarmonicTransform` inverse Spherical Harmonic Transform
+
 
 ### hdrtools
 
