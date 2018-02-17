@@ -5,6 +5,9 @@ import numpy as np
 from scipy import misc as scipy_io
 
 
+__version__ = "0.2"
+
+
 try:
     import ezexr
 except ImportError as e:

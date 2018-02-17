@@ -25,7 +25,7 @@ setup(
     author='Yannick Hold',
     author_email='yannickhold@gmail.com',
     url='https://github.com/soravux/skylibs',
-    version='0.1',
+    version='0.2',
     packages=['ezexr', 'envmap', 'hdrio', 'hdrtools', 'hdrtools/tonemapping', 'skydb', 'tools3d'],
     package_data=package_data,
     include_package_data=True,
