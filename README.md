@@ -66,5 +66,7 @@ Tonemapping using `pfstools`.
 - Improved display for environment maps (change intensity with keystroke/button)
 - Standalone `ezexr` on all platforms
 - add `worldCoordinates()` output in spherical coordinates instead of (x, y, z)
-- bugfix: rotate is not working on grayscale (2D) data
+- Add assert that data is float32 in convertTo/resize (internal bugs in scipy interpolation)
+- bugfix: `.rotate()` not working on grayscale (2D) data
+- bugfix: `.convertTo()` not working on grayscale (2D) data
 
