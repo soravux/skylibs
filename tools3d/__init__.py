@@ -1,5 +1,9 @@
 import numpy as np
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, vstack as sparse_vstack
+from scipy.sparse.linalg import lsqr as sparse_lsqr
+
+
+from . import display
 
 
 def getMaskDerivatives(mask):
@@ -80,12 +84,12 @@ def ZfromN(normals, mask, Mx, My):
     X = coo_matrix((normals[:,0], (ij, ij)), shape=Mx.shape)
     Y = coo_matrix((normals[:,1], (ij, ij)), shape=Mx.shape)
     Z = coo_matrix((normals[:,2], (ij, ij)), shape=Mx.shape)
-    A = np.vstack((Z.dot(Mx).toarray(),
-                   Z.dot(My).toarray(),
-                   Y.dot(Mx).toarray() - X.dot(My).toarray()))
+    A = sparse_vstack((Z.dot(Mx),
+                       Z.dot(My),
+                       Y.dot(Mx) - X.dot(My)))
     # Is the 3rd constraint really useful?
 
-    surf = np.linalg.lstsq(A, b)
+    surf = sparse_lsqr(A, b)
     surf = surf[0]
     surf -= surf.min()
 
