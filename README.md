@@ -5,7 +5,29 @@ Tools used for LDR/HDR environment map (IBL) handling and IO.
 
 ### envmap
 
+`envmap.EnvironmentMap` Environment map class. Converts easily between those formats:
 
+- latlong (equirectangular
+- angular 
+- sphere
+- cube
+- skyangular
+- skylatlong
+
+Available methods:
+
+- `.copy()`: Deepcopy the instance.
+- `.solidAngles()`: Computes the per-pixel solid angles of the current representaiton.
+- `.convertTo(targetFormat)`: Convert to the `targetFormat`.
+- `.rotate(format, rotation)`: Rotate the environment map using format DCM. Soon will support Euler Angles, Euler Vector and Quaternions.
+- `.resize(targetSize)`: Resize the environment map. Be cautious, this function does not ensure energy is preserved!
+- `.toIntensity()`: Convert to grayscale.
+- `.getMeanLightVectors(normals)`: Compute the mean light vector of the environment map for the given normals.
+
+Internal functions:
+- `.imageCoordinates()`: returns the (u, v) coordinates at teach pixel center.
+- `.worldCoordinates()`: returns the (x, y, z) world coordinates for each pixel center.
+- `.interpolate(u, v, valid, method='linear')`: interpolates
 
 ### hdrio
 
