@@ -59,3 +59,12 @@ Internal exr reader and writer.
 
 Tonemapping using `pfstools`.
 
+
+
+## Roadmap
+
+- Improved display for environment maps (change intensity with keystroke/button)
+- Standalone `ezexr` on all platforms
+- add `worldCoordinates()` output in spherical coordinates instead of (x, y, z)
+- bugfix: rotate is not working on grayscale (2D) data
+
