@@ -9,7 +9,7 @@
 #define M_PI 3.14159265358979323846
 
 
-inline float amm(float m)
+float amm(float m)
 {
     unsigned int k;
     float retval = 1.F;
@@ -20,18 +20,18 @@ inline float amm(float m)
     return sqrt(1.F / (4.F * M_PI) * retval);
 }
 
-inline float amn(float m, float n)
+float amn(float m, float n)
 {
     return sqrt((4.F*n*n - 1.F) / (n*n - m*m));
 }
 
-inline float bmn(float m, float n)
+float bmn(float m, float n)
 {
     return -sqrt( ((2.F*n + 1.F) / (2.F*n - 3.F)) * (((n - 1.F)*(n - 1.F) - m*m) / (n*n - m*m)) );
 }
 
 
-inline float Pmm(float m, float x)
+float Pmm(float m, float x)
 {
     return amm(m)*pow(1 - x*x, m/2.F);
 }
@@ -94,5 +94,5 @@ void generateAssociatedLegendreFactors(const float N, float *data_out, const flo
             }
         }
     }
-    printf("j: %i\n", j);
+    //printf("j: %i\n", j);
 }

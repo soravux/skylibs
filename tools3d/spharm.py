@@ -38,7 +38,10 @@ def FSHT(envmap, degrees=3, reduction_type='right'):
     ffi.cdef("""
         void generateAssociatedLegendreFactors(const float N, float *data_out, const float * nodes, const unsigned int num_nodes);
     """)
-    C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "spharm_tools.dll"))
+    if os.name == 'nt':
+        C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "spharm_tools.dll"))
+    else:
+        C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "spharm_tools.so"))
 
     envmap.data = envmap.data[...,np.newaxis]
     ch = envmap.data.shape[2]
@@ -128,7 +131,10 @@ def _getP(envmap, degrees):
     ffi.cdef("""
         void generateAssociatedLegendreFactors(const float N, float *data_out, const float * nodes, const unsigned int num_nodes);
     """)
-    C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "spharm_tools.dll"))
+    if os.name == 'nt':
+        C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "spharm_tools.dll"))
+    else:
+        C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "spharm_tools.so"))
 
     x, y, z, valid = envmap.worldCoordinates()
     theta = np.arctan2(x, -z)
