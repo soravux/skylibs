@@ -336,13 +336,14 @@ class EnvironmentMap:
         If targetSize > 1, treat it as new dimensions to use
         """
         if not isinstance(targetSize, tuple):
-            targetSize = (targetSize, targetSize)
             if self.format_ == 'latlong':
                 targetSize = (targetSize, 2*targetSize)
-            if self.format_ == 'skylatlong':
+            elif self.format_ == 'skylatlong':
                 targetSize = (targetSize, 4*targetSize)
-            if self.format_ == 'cube':
+            elif self.format_ == 'cube':
                 targetSize = (targetSize, round(3/4*targetSize))
+            else:
+                targetSize = (targetSize, targetSize)
 
         _size = []
         for i in range(2):
@@ -359,7 +360,7 @@ class EnvironmentMap:
         Returns intensity-version of the environment map.
         This function assumes the CCIR 601 standard to perform internsity conversion.
         """
-        assert len(self.data.shape) == 3, "Data should be 3 dimensions"
+        assert len(self.data.shape) == 3, "Data should have exactly 3 dimensions"
 
         if self.data.shape[2] != 3:
             print("Envmap doesn't have 3 channels. This function won't do anything.")
