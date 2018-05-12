@@ -137,7 +137,6 @@ class SkyProbe:
         else:
             return EnvironmentMap(self.path)
 
-    @property
     def sun_position(self, method="coords"):
         """
         :returns: (elevation, azimuth)
