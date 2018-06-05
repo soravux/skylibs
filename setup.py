@@ -26,7 +26,7 @@ setup(
     author_email='yannickhold@gmail.com',
     license="LGPLv3",
     url='https://github.com/soravux/skylibs',
-    version='0.3',
+    version='0.4',
     packages=['ezexr', 'envmap', 'hdrio', 'hdrtools', 'hdrtools/tonemapping', 'skydb', 'tools3d'],
     package_data=package_data,
     include_package_data=True,
