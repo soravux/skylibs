@@ -420,6 +420,24 @@ class EnvironmentMap:
         mu = np.tan(hfov/2.*np.pi/180.)
         mv = np.tan(vfov/2.*np.pi/180.)
 
+        if mode == "mask":
+            x, y, z, _ = self.worldCoordinates()
+            xy = np.sqrt( (x**2 + y**2) / (-x**2 - y**2 + 1) )
+            theta = np.arctan2(x, y)
+            x = xy*np.sin(theta)
+            y = xy*np.cos(theta)
+
+            hmask = (x>-mu) & (x<mu)
+            vmask = (y>-mv) & (y<mv)
+            dmask = z < 0
+            mask = hmask & vmask & dmask
+
+            e = EnvironmentMap(mask[:,:,np.newaxis], 'LatLong')
+            e.rotate("DCM", rotation_matrix)
+
+            mask = e.data[:,:,0]
+            return mask
+
         # Uniform sampling on the plane
         dy = np.linspace(mv, -mv, resolution[1])
         dx = np.linspace(-mu, mu, resolution[0])
@@ -430,9 +448,8 @@ class EnvironmentMap:
         if projection == "perspective":
             xy = np.sqrt( (x**2 + y**2) / (x**2 + y**2 + 1) )
             theta = np.arctan2(x, y)
-            nx = xy*np.sin(theta)
-            ny = xy*np.cos(theta)
-            x, y = nx, ny
+            x = xy*np.sin(theta)
+            y = xy*np.cos(theta)
         elif projection == "orthographic":
             raise NotImplementedError()
             print("Angle wrong: mu+mv too large.")
