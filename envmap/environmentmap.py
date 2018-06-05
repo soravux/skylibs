@@ -4,6 +4,7 @@ from copy import deepcopy
 import numpy as np
 from scipy.ndimage.interpolation import map_coordinates, zoom
 
+from rotlib import rotx, roty, rotz
 from hdrio import imread
 
 from .tetrahedronSolidAngle import tetrahedronSolidAngle
@@ -62,6 +63,8 @@ class EnvironmentMap:
             metadata = EnvmapXMLParser("{}.meta.xml".format(filename))
             format_ = metadata.getFormat()
 
+        assert format_ is not None, (
+            "Please provide format (metadata file not found).")
         assert format_.lower() in SUPPORTED_FORMATS, (
             "Unknown format: {}".format(format_))
 
@@ -101,7 +104,7 @@ class EnvironmentMap:
                 self.data = self.data.copy()
         else:
             raise Exception('Could not understand input. Please provide a '
-                            'filename, a size or an image.')
+                            'filename, a single size (height) or an image.')
 
         # Ensure size is valid
         if self.format_ in ['sphere', 'angular', 'skysphere', 'skyangular']:
@@ -227,7 +230,7 @@ class EnvironmentMap:
         }.get(self.format_)
         return func(x, y, z)
 
-    def interpolate(self, u, v, valid, method='linear'):
+    def interpolate(self, u, v, valid=None, method='linear'):
         """"Interpolate to get the desired pixel values."""
         target = np.vstack((v.flatten()*self.data.shape[0], u.flatten()*self.data.shape[1]))
 
@@ -246,7 +249,7 @@ class EnvironmentMap:
 
         # To avoid displacement due to the padding
         u += 1./self.data.shape[1]
-        v += 1/self.data.shape[0]
+        v += 1./self.data.shape[0]
 
         data = np.zeros((u.shape[0], u.shape[1], d))
         for c in range(d):
@@ -255,12 +258,13 @@ class EnvironmentMap:
 
         # In original: valid &= ~isnan(data)...
         # I haven't included it here because it may mask potential problems...
-        self.setBackgroundColor(self.backgroundColor, valid)
+        if valid is not None:
+            self.setBackgroundColor(self.backgroundColor, valid)
 
         return self
 
     def setBackgroundColor(self, color, valid):
-        """Sets the area defined by valid to color."""
+        """Sets the area defined by ~valid to color."""
         assert valid.dtype == 'bool', "`valid` must be a boolean array."
         assert valid.shape[:2] == self.data.shape[:2], "`valid` must be the same size as the EnvironmentMap."
 
@@ -315,12 +319,9 @@ class EnvironmentMap:
         ptR = np.dot(input_, np.vstack((dx.flatten(), dy.flatten(), dz.flatten())))
         dx, dy, dz = ptR[0].reshape(dx.shape), ptR[1].reshape(dy.shape), ptR[2].reshape(dz.shape)
 
-        dx[dx < -1.] = -1.
-        dy[dy < -1.] = -1.
-        dz[dz < -1.] = -1.
-        dx[dx > 1.] = 1.
-        dy[dy > 1.] = 1.
-        dz[dz > 1.] = 1.
+        dx = np.clip(dx, -1, 1)
+        dy = np.clip(dy, -1, 1)
+        dz = np.clip(dz, -1, 1)
 
         u, v = self.world2image(dx, dy, dz)
         self.interpolate(u, v, valid)
@@ -395,3 +396,45 @@ class EnvironmentMap:
         meanlight = np.nansum(xyz[...,np.newaxis] * meanlight[...,np.newaxis].transpose((0,1,3,2)), (0, 1))
 
         return meanlight
+
+    def project(self, vfov, rotation_matrix, ar=4./3., resolution=(640, 480)):
+        """Perform a projection onto a plane (simulate a camera).
+
+        :vfov: Vertical Field of View (degrees).
+        :rotation_matrix: Camera rotation matrix.
+        :ar: Aspect ratio (width / height).
+        :resolution: Output size in cols x rows (e.g. 640x480)"""
+
+        hfov = vfov*ar
+
+        # Project angle on the sphere to the +Z plane (distance=1 from the camera)
+        mu = np.tan(hfov/2.)
+        mv = np.tan(vfov/2.)
+
+        # Uniform sampling on the plane
+        dy = np.linspace(mv, -mv, resolution[1])
+        dx = np.linspace(-mu, mu, resolution[0])
+        x, y = np.meshgrid(dx, dy)
+
+        # Compute unit length vector (project back to sphere) from the plane
+        x, y = x.ravel(), y.ravel()
+        z = -np.sqrt(1 - (x**2 + y**2))
+        coords = np.vstack((x, y, z))
+
+        # Perform rotation
+        coords = rotation_matrix.T.dot(coords)
+
+        # Get image coordinates from world sphere coordinates
+        u, v = self.world2image(coords[0,:], coords[1,:], coords[2,:])
+        u, v = u.reshape(resolution[::-1]), v.reshape(resolution[::-1])
+
+        target = self.copy()
+        return target.interpolate(u, v).data
+
+
+def rotation_matrix(azimuth, elevation, roll=0):
+    """Returns a camera rotation matrix.
+    :azimuth: left (negative) to right (positive) [rad]
+    :elevation: upward (negative) to downward (positive) [rad]
+    :roll: counter-clockwise (negative) to clockwise (positive) [rad]"""
+    return rotz(roll).dot(rotx(elevation)).dot(roty(-azimuth))
