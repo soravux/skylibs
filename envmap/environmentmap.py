@@ -397,19 +397,28 @@ class EnvironmentMap:
 
         return meanlight
 
-    def project(self, vfov, rotation_matrix, ar=4./3., resolution=(640, 480)):
-        """Perform a projection onto a plane (simulate a camera).
+    def project(self, vfov, rotation_matrix, ar=4./3., resolution=(640, 480),
+                projection="perspective", mode="normal"):
+        """Perform a projection onto a plane ("_simulates_" a camera).
+
+        Note: this function does not modify the foreshortening present in the
+        environment map.
 
         :vfov: Vertical Field of View (degrees).
         :rotation_matrix: Camera rotation matrix.
         :ar: Aspect ratio (width / height).
-        :resolution: Output size in cols x rows (e.g. 640x480)"""
+        :resolution: Output size in cols x rows (e.g. 640x480).
+        :projection: perspective or orthographic.
+        :mode: "normal": perform crop, "mask": show pixel mask in the envmap."""
+
+        if mode not in ("normal", "mask"):
+            raise Exception("Unknown mode: {}.".format(mode))
 
         hfov = vfov*ar
 
         # Project angle on the sphere to the +Z plane (distance=1 from the camera)
-        mu = np.tan(hfov/2.)
-        mv = np.tan(vfov/2.)
+        mu = np.tan(hfov/2.*np.pi/180.)
+        mv = np.tan(vfov/2.*np.pi/180.)
 
         # Uniform sampling on the plane
         dy = np.linspace(mv, -mv, resolution[1])
@@ -418,17 +427,31 @@ class EnvironmentMap:
 
         # Compute unit length vector (project back to sphere) from the plane
         x, y = x.ravel(), y.ravel()
+        if projection == "perspective":
+            xy = np.sqrt( (x**2 + y**2) / (x**2 + y**2 + 1) )
+            theta = np.arctan2(x, y)
+            nx = xy*np.sin(theta)
+            ny = xy*np.cos(theta)
+            x, y = nx, ny
+        elif projection == "orthographic":
+            raise NotImplementedError()
+            print("Angle wrong: mu+mv too large.")
+        else:
+            raise Exception("Unknown projection: {}.".format(projection))
         z = -np.sqrt(1 - (x**2 + y**2))
         coords = np.vstack((x, y, z))
 
         # Perform rotation
         coords = rotation_matrix.T.dot(coords)
 
+        target = self.copy()
+        if target.format_ != "latlong":
+            target = target.convertTo("LatLong")
+
         # Get image coordinates from world sphere coordinates
-        u, v = self.world2image(coords[0,:], coords[1,:], coords[2,:])
+        u, v = target.world2image(coords[0,:], coords[1,:], coords[2,:])
         u, v = u.reshape(resolution[::-1]), v.reshape(resolution[::-1])
 
-        target = self.copy()
         return target.interpolate(u, v).data
 
 
