@@ -414,6 +414,9 @@ class EnvironmentMap:
         if mode not in ("normal", "mask"):
             raise Exception("Unknown mode: {}.".format(mode))
 
+        if projection == "orthographic":
+            vfov = np.arctan(np.sin(vfov*np.pi/180.))*180/np.pi
+
         hfov = vfov*ar
 
         # Project angle on the sphere to the +Z plane (distance=1 from the camera)
@@ -451,8 +454,7 @@ class EnvironmentMap:
             x = xy*np.sin(theta)
             y = xy*np.cos(theta)
         elif projection == "orthographic":
-            raise NotImplementedError()
-            print("Angle wrong: mu+mv too large.")
+            pass
         else:
             raise Exception("Unknown projection: {}.".format(projection))
         z = -np.sqrt(1 - (x**2 + y**2))
