@@ -183,15 +183,10 @@ class GenerateTransportMatrix(bpy.types.Operator):
                     intensity = envmap_coords.dot(normal_np)
                     # TODO: Add albedo here
 
-                    # compute cosine distances between normal and light direction
-                    norm_targets = np.linalg.norm(envmap_coords, axis=1)
-                    norm_normal = np.linalg.norm(normal_np)
-                    cosines = np.dot(envmap_coords, normal_np.T) / (norm_targets * norm_normal)
-
                     # Handle occlusions (single bounce)
                     for idx in range(envmap_coords.shape[0]):
-                        # if the normal is opposes the light direction, no need to raytrace.
-                        if cosines[idx] < 0:
+                        # if the normal opposes the light direction, no need to raytrace.
+                        if intensity[idx] < 0:
                             intensity[idx] = 0
                             continue
 
@@ -205,8 +200,6 @@ class GenerateTransportMatrix(bpy.types.Operator):
 
                         if normal_occ:
                             intensity[idx] = 0
-
-                    intensity[intensity < 0] = 0
                 else:
                     intensity = np.zeros(envmap_coords.shape[0])
 
