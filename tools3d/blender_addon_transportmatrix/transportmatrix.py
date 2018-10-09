@@ -13,6 +13,7 @@ from mathutils import Vector
 import bpy_extras
 import numpy as np
 
+
 # TODOs:
 # 1. Generate a mask to shrink the matrix size (remove pixels that doesn't intersect the scene)
 # 2. Add support for (lambertian) albedo from blender's UI
@@ -32,12 +33,12 @@ def getClosestIntersection(clip_end, ray_begin, ray_direction):
     for obj in objs:
         if obj.type != 'MESH':
             continue
-        #v1 = obj.matrix_world.inverted() * cam.matrix_world * Vector((0.0, 0.0, -cam.data.clip_end))
+        # v1 = obj.matrix_world.inverted() * cam.matrix_world * Vector((0.0, 0.0, -cam.data.clip_end))
 
         mat_inv = obj.matrix_world.inverted()
         ray_origin = mat_inv * ray_begin
         ray_end = mat_inv * ray_direction.copy()
-        #ray_obj_direction = (ray_end - ray_origin) * cam.data.clip_end
+        # ray_obj_direction = (ray_end - ray_origin) * cam.data.clip_end
         success, location, normal, index = obj.ray_cast(ray_origin, ray_end - ray_origin)
 
         if success and index != -1:
@@ -88,8 +89,8 @@ def skylatlong2world(u, v):
 def getEnvmapDirections(envmap_size, envmap_type):
     """envmap_size = (rows, columns)
     envmap_type in ["latlong", "skylatlong"]"""
-    cols = np.linspace(0, 1, envmap_size[1]*2 + 1)
-    rows = np.linspace(0, 1, envmap_size[0]*2 + 1)
+    cols = np.linspace(0, 1, envmap_size[1] * 2 + 1)
+    rows = np.linspace(0, 1, envmap_size[0] * 2 + 1)
 
     cols = cols[1::2]
     rows = rows[1::2]
@@ -103,7 +104,7 @@ def getEnvmapDirections(envmap_size, envmap_type):
         raise Exception("Unknown format: {}. Should be either \"latlong\" or "
                         "\"skylatlong\".".format(envmap_type))
 
-    return np.asarray([x, y, z]).reshape((3,-1)).T
+    return np.asarray([x, y, z]).reshape((3, -1)).T
 
 
 class GenerateTransportMatrix(bpy.types.Operator):
@@ -122,10 +123,11 @@ class GenerateTransportMatrix(bpy.types.Operator):
 
         cam = bpy.data.objects['Camera']
 
-        envmap_size = (self.envmap_height, 2*self.envmap_height if self.envmap_type.lower() == "latlong" else 4*self.envmap_height)
+        envmap_size = (
+        self.envmap_height, 2 * self.envmap_height if self.envmap_type.lower() == "latlong" else 4 * self.envmap_height)
         envmap_coords = cam.data.clip_end * getEnvmapDirections(envmap_size, self.envmap_type)
-        envmap_coords_blender = envmap_coords[:,[0,2,1]].copy()
-        envmap_coords_blender[:,1] = -envmap_coords_blender[:,1]
+        envmap_coords_blender = envmap_coords[:, [0, 2, 1]].copy()
+        envmap_coords_blender[:, 1] = -envmap_coords_blender[:, 1]
 
         # Get the render resolution
         resp = bpy.data.scenes["Scene"].render.resolution_percentage / 100.
@@ -136,7 +138,7 @@ class GenerateTransportMatrix(bpy.types.Operator):
         frame = cam.data.view_frame(bpy.context.scene)
         tr, br, bl, tl = [cam.matrix_world * corner for corner in frame]
         x = br - bl
-        dx =  x.normalized()
+        dx = x.normalized()
         y = tl - bl
         dy = y.normalized()
 
@@ -148,8 +150,8 @@ class GenerateTransportMatrix(bpy.types.Operator):
             normals_row = []
             for b in range(resx):
                 ray_direction = py + b * x.length / float(resx) * dx
-                #ray_target = (p - cam.location) * cam.data.clip_end + cam.location
-                #hit, n, f = obj_raycast(obj, ray_origin, ray_target)
+                # ray_target = (p - cam.location) * cam.data.clip_end + cam.location
+                # hit, n, f = obj_raycast(obj, ray_origin, ray_target)
                 normal, location = getClosestIntersection(cam.data.clip_end, cam.location, ray_direction)
 
                 # This coordinates system converts from blender's z=up to skylibs y=up
@@ -166,11 +168,14 @@ class GenerateTransportMatrix(bpy.types.Operator):
 
                     # Handle occlusions (single bounce)
                     for idx in range(envmap_coords.shape[0]):
-                        target_vec = Vector(envmap_coords_blender[idx,:])
+                        # print(envmap_coords_blender.shape)
+                        target_vec = Vector(envmap_coords_blender[idx, :])
                         # Check for occlusions. The 1e-3 is just to be sure the
                         # ray casting does not start right from the surface and
                         # find itself as occlusion...
-                        normal_occ, _ = getClosestIntersection(cam.data.clip_end, location + (1/cam.data.clip_end)*1e-3*target_vec, target_vec)
+                        normal_occ, _ = getClosestIntersection(cam.data.clip_end,
+                                                               location + (1 / cam.data.clip_end) * 1e-3 * target_vec,
+                                                               target_vec)
 
                         if normal_occ:
                             intensity[idx] = 0
@@ -179,12 +184,12 @@ class GenerateTransportMatrix(bpy.types.Operator):
                 else:
                     intensity = np.zeros(envmap_coords.shape[0])
 
-                #row.append(intensity)
+                # row.append(intensity)
                 pixels.append(intensity)
                 # This line is for outputting normals
-                #row.append([p for p in normal] if normal else [0, 0, 0])
+                # row.append([p for p in normal] if normal else [0, 0, 0])
             whole_normals.append(normals_row)
-            #row = []
+            # row = []
             print("{}/{}".format(s, resy))
         pixels = np.asarray(pixels)
         whole_normals = np.asarray(whole_normals)
@@ -201,9 +206,9 @@ class GenerateTransportMatrix(bpy.types.Operator):
 
 
 def menu_export(self, context):
-    #import os
-    #default_path = os.path.splitext(bpy.data.filepath)[0] + ".npz"
-    self.layout.operator(GenerateTransportMatrix.bl_idname, text="Transport Matrix (.npz)")#.filepath = default_path
+    # import os
+    # default_path = os.path.splitext(bpy.data.filepath)[0] + ".npz"
+    self.layout.operator(GenerateTransportMatrix.bl_idname, text="Transport Matrix (.npz)")  # .filepath = default_path
 
 
 def register():
@@ -218,5 +223,5 @@ def unregister():
 
 if __name__ == "__main__":
     register()
-    #a = GenerateTransportMatrix()
-    #a.execute(bpy.context)
+    # a = GenerateTransportMatrix()
+    # a.execute(bpy.context)
