@@ -26,29 +26,13 @@ import time
 # https://blender.stackexchange.com/questions/90698/projecting-onto-a-mirror-and-back/91019#91019
 # https://blender.stackexchange.com/questions/13510/get-position-of-the-first-solid-crossing-limits-line-of-a-camera
 def getClosestIntersection(clip_end, ray_begin, ray_direction):
-    objs = bpy.data.objects
-
-    min_location = None
     min_normal = None
-    min_ = (clip_end, None, None)
-    for obj in objs:
-        if obj.type != 'MESH':
-            continue
-        # v1 = obj.matrix_world.inverted() * cam.matrix_world * Vector((0.0, 0.0, -cam.data.clip_end))
-
-        mat_inv = obj.matrix_world.inverted()
-        ray_origin = mat_inv * ray_begin
-        ray_end = mat_inv * ray_direction.copy()
-        # ray_obj_direction = (ray_end - ray_origin) * cam.data.clip_end
-        success, location, normal, index = obj.ray_cast(ray_origin, ray_end - ray_origin)
-
-        if success and index != -1:
-            mag = (obj.matrix_world * (location - ray_origin)).magnitude
-            if mag < min_[0]:
-                min_ = (mag, obj, location)
-                min_normal = obj.matrix_world.to_3x3().normalized() * normal.copy()
-                min_location = obj.matrix_world * location.copy()
-
+    min_location = None
+    success, location, normal, index, object, matrix = bpy.data.scenes["Scene"].ray_cast(ray_begin,
+                                                                                         ray_direction - ray_begin)
+    if success:
+        min_normal = matrix.to_3x3().normalized() * normal.copy()
+        min_location = location.copy()
     return min_normal, min_location
 
 
@@ -134,6 +118,39 @@ class GenerateTransportMatrix(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     @staticmethod
+    def compute_occlusion(location, normal, envmap_directions, cam, envmap_directions_blender=None):
+        if envmap_directions_blender is None:
+            envmap_directions_blender = envmap_directions[:, [0, 2, 1]].copy()
+            envmap_directions_blender[:, 1] = -envmap_directions_blender[:, 1]
+
+        if normal.any():
+            # For every envmap pixel
+            # normal_np = np.array([normal[0], normal[2], -normal[1]])
+            intensity = envmap_directions.dot(normal)
+            # TODO: Add albedo here
+
+            # Handle occlusions (single bounce)
+            for idx in range(envmap_directions.shape[0]):
+                # if the normal opposes the light direction, no need to raytrace.
+                if intensity[idx] < 0:
+                    intensity[idx] = 0
+                    continue
+
+                target_vec = Vector(envmap_directions_blender[idx, :])
+                # Check for occlusions. The 1e-3 is just to be sure the
+                # ray casting does not start right from the surface and
+                # find itself as occlusion...
+                normal_occ, _ = getClosestIntersection(cam.data.clip_end,
+                                                       location + (1 / cam.data.clip_end) * 1e-3 * target_vec,
+                                                       target_vec)
+
+                if normal_occ:
+                    intensity[idx] = 0
+        else:
+            intensity = np.zeros(envmap_directions.shape[0])
+        return intensity
+
+    @staticmethod
     def compute_transport(envmap_height, envmap_type, only_surface_normals):
         start_time = time.time()
 
@@ -159,62 +176,42 @@ class GenerateTransportMatrix(bpy.types.Operator):
         y = tl - bl
         dy = y.normalized()
 
-        pixels = []
         whole_normals = []
+        whole_positions = []
+        print("Raycast scene...")
         # TODO: Shouldn't we use the center of the pixel instead of the corner?
         for s in range(resy):
             py = tl - s * y.length / float(resy) * dy
             normals_row = []
+            position_row = []
             for b in range(resx):
                 ray_direction = py + b * x.length / float(resx) * dx
-                # ray_target = (p - cam.location) * cam.data.clip_end + cam.location
-                # hit, n, f = obj_raycast(obj, ray_origin, ray_target)
                 normal, location = getClosestIntersection(cam.data.clip_end, cam.location, ray_direction)
-
                 # This coordinates system converts from blender's z=up to skylibs y=up
                 normals_row.append([normal[0], normal[2], -normal[1]] if normal else [0, 0, 0])
+                position_row.append(location)
 
-                if only_surface_normals:
-                    continue
-
-                if normal:
-                    # For every envmap pixel
-                    normal_np = np.array([normal[0], normal[2], -normal[1]])
-                    intensity = envmap_coords.dot(normal_np)
-                    # TODO: Add albedo here
-
-                    # Handle occlusions (single bounce)
-                    for idx in range(envmap_coords.shape[0]):
-                        # if the normal opposes the light direction, no need to raytrace.
-                        if intensity[idx] < 0:
-                            intensity[idx] = 0
-                            continue
-
-                        target_vec = Vector(envmap_coords_blender[idx, :])
-                        # Check for occlusions. The 1e-3 is just to be sure the
-                        # ray casting does not start right from the surface and
-                        # find itself as occlusion...
-                        normal_occ, _ = getClosestIntersection(cam.data.clip_end,
-                                                               location + (1 / cam.data.clip_end) * 1e-3 * target_vec,
-                                                               target_vec)
-
-                        if normal_occ:
-                            intensity[idx] = 0
-                else:
-                    intensity = np.zeros(envmap_coords.shape[0])
-
-                # row.append(intensity)
-                pixels.append(intensity)
-                # This line is for outputting normals
-                # row.append([p for p in normal] if normal else [0, 0, 0])
             whole_normals.append(normals_row)
-            # row = []
-            print("{}/{}".format(s, resy))
-        pixels = np.asarray(pixels)
+            whole_positions.append(position_row)
+
         whole_normals = np.asarray(whole_normals)
+
+        print("Raycast light contribution")
+        pixels = np.zeros((resx * resy, envmap_coords.shape[0]))
+        if not only_surface_normals:
+            for s in range(resy):
+                for b in range(resx):
+                    index = s * resx + b
+                    intensity = GenerateTransportMatrix.compute_occlusion(whole_positions[s][b],
+                                                                          whole_normals[s, b, :],
+                                                                          envmap_coords,
+                                                                          cam,
+                                                                          envmap_coords_blender)
+                    pixels[index, :] = intensity
+                print("{}/{}".format(s, resy))
+
         print("Total time : {}".format(time.time() - start_time))
         return pixels, whole_normals, np.array([resy, resx])
-
 
 
 def menu_export(self, context):
@@ -235,6 +232,8 @@ def unregister():
 
 if __name__ == "__main__":
     register()
+
+    # Debug code
     #import time
     #time_start = time.time()
     #T, normals, res = GenerateTransportMatrix.compute_transport(12, "latlong", False)
