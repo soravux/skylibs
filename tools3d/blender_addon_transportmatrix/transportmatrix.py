@@ -12,6 +12,7 @@ import bpy
 from mathutils import Vector
 import bpy_extras
 import numpy as np
+import time
 
 
 # TODOs:
@@ -121,11 +122,27 @@ class GenerateTransportMatrix(bpy.types.Operator):
 
     def execute(self, context):
 
+        T, normals, resolution = self.compute_transport(self.envmap_height, self.envmap_type, self.only_surface_normals)
+        print("Saving to ", self.filepath)
+        with open(self.filepath, "wb") as fhdl:
+            np.savez(fhdl, T, normals, resolution)
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    @staticmethod
+    def compute_transport(envmap_height, envmap_type, only_surface_normals):
+        start_time = time.time()
+
         cam = bpy.data.objects['Camera']
 
         envmap_size = (
-        self.envmap_height, 2 * self.envmap_height if self.envmap_type.lower() == "latlong" else 4 * self.envmap_height)
-        envmap_coords = cam.data.clip_end * getEnvmapDirections(envmap_size, self.envmap_type)
+            envmap_height,
+            2 * envmap_height if envmap_type.lower() == "latlong" else 4 * envmap_height)
+        envmap_coords = cam.data.clip_end * getEnvmapDirections(envmap_size, envmap_type)
         envmap_coords_blender = envmap_coords[:, [0, 2, 1]].copy()
         envmap_coords_blender[:, 1] = -envmap_coords_blender[:, 1]
 
@@ -157,7 +174,7 @@ class GenerateTransportMatrix(bpy.types.Operator):
                 # This coordinates system converts from blender's z=up to skylibs y=up
                 normals_row.append([normal[0], normal[2], -normal[1]] if normal else [0, 0, 0])
 
-                if self.only_surface_normals:
+                if only_surface_normals:
                     continue
 
                 if normal:
@@ -166,9 +183,18 @@ class GenerateTransportMatrix(bpy.types.Operator):
                     intensity = envmap_coords.dot(normal_np)
                     # TODO: Add albedo here
 
+                    # compute cosine distances between normal and light direction
+                    norm_targets = np.linalg.norm(envmap_coords, axis=1)
+                    norm_normal = np.linalg.norm(normal_np)
+                    cosines = np.dot(envmap_coords, normal_np.T) / (norm_targets * norm_normal)
+
                     # Handle occlusions (single bounce)
                     for idx in range(envmap_coords.shape[0]):
-                        # print(envmap_coords_blender.shape)
+                        # if the normal is opposes the light direction, no need to raytrace.
+                        if cosines[idx] < 0:
+                            intensity[idx] = 0
+                            continue
+
                         target_vec = Vector(envmap_coords_blender[idx, :])
                         # Check for occlusions. The 1e-3 is just to be sure the
                         # ray casting does not start right from the surface and
@@ -193,16 +219,9 @@ class GenerateTransportMatrix(bpy.types.Operator):
             print("{}/{}".format(s, resy))
         pixels = np.asarray(pixels)
         whole_normals = np.asarray(whole_normals)
+        print("Total time : {}".format(time.time() - start_time))
+        return pixels, whole_normals, np.array([resy, resx])
 
-        print("Saving to ", self.filepath)
-        with open(self.filepath, "wb") as fhdl:
-            np.savez(fhdl, pixels, whole_normals, np.array([resy, resx]))
-
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
 
 
 def menu_export(self, context):
@@ -223,5 +242,7 @@ def unregister():
 
 if __name__ == "__main__":
     register()
-    # a = GenerateTransportMatrix()
-    # a.execute(bpy.context)
+    #import time
+    #time_start = time.time()
+    #T, normals, res = GenerateTransportMatrix.compute_transport(12, "latlong", False)
+    #print("Total time = {}".format(time.time() - time_start))
