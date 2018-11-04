@@ -480,3 +480,23 @@ def rotation_matrix(azimuth, elevation, roll=0):
     :elevation: upward (negative) to downward (positive) [rad]
     :roll: counter-clockwise (negative) to clockwise (positive) [rad]"""
     return rotz(roll).dot(rotx(elevation)).dot(roty(-azimuth))
+
+def downscaleEnvmap(nenvmap, sao, sat, times):
+    """Energy-preserving environment map downscaling by factors of 2.
+    Usage:
+    sao = EnvironmentMap(512, 'LatLong').solidAngles() # Source envmap solid angles, could be replaced by `sao = envmap.soldAngles()`
+    sat = EnvironmentMap(128, 'LatLong').solidAngles() # Target envmap solid angles
+    downscaleEnvmap(envmap, sao, sat, 3)
+    Note : `times` is the number of downscales, so the total downscaling factor is 2**times"""
+    nenvmap.data *= sao[:, :, np.newaxis]
+    nenvmap.data = np.pad(nenvmap.data, [(0, 1), (0, 1), (0, 0)], 'constant')
+    sx = np.cumsum(nenvmap.data, axis=1)
+    tmp = sx[:, 2**times::2**times, ...] - sx[:, :-2**times:2**times, ...]
+    sy = np.cumsum(tmp, axis=0)
+    nenvmap.data = sy[2**times::2**times, :, ...] - sy[:-2**times:2**times, :, ...]
+    if nenvmap.data.shape[1] > 2*nenvmap.data.shape[0]:
+        nenvmap.data[:, -2, :] += nenvmap[:, -1, :]
+        nenvmap.data = nenvmap.data[:, :-1, :]
+    nenvmap.data /= sat[:, :, np.newaxis]
+    nenvmap.data = np.ascontiguousarray(nenvmap.data)
+    return nenvmap
