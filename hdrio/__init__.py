@@ -2,7 +2,7 @@ import os
 import subprocess
 
 import numpy as np
-from scipy.misc import imsave as imsave_ldr
+from scipy import misc as scipy_io
 
 
 __version__ = "0.2"
@@ -17,6 +17,7 @@ try:
     import imageio
     imsave_ldr = imageio.imwrite
 except ImportError as e:
+    imsave_ldr = scipy_io.imsave
     print("Could not import hdr module:", e)
 
 
