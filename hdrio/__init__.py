@@ -2,7 +2,7 @@ import os
 import subprocess
 
 import numpy as np
-from scipy import misc as scipy_io
+from scipy.misc import imsave as imsave_ldr
 
 
 __version__ = "0.2"
@@ -15,6 +15,7 @@ except ImportError as e:
 
 try:
     import imageio
+    imsave_ldr = imageio.imwrite
 except ImportError as e:
     print("Could not import hdr module:", e)
 
@@ -26,7 +27,7 @@ def imwrite(data, filename):
     elif ext in ['.hdr', '.pic']:
         _hdr_write(filename, data)
     else:
-        scipy_io.imsave(filename, data)
+        imsave_ldr(filename, (data * 255).astype('uint8')))
 
 
 def imsave(filename, data):
