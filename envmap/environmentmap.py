@@ -147,6 +147,8 @@ class EnvironmentMap:
         cube[2*basedim, 0:basedim] = bottom[:,0][::-1] # left-bottom
         cube[2*basedim:3*basedim, basedim-1] = left[-1,...][::-1] #bottom-left
         cube[2*basedim:3*basedim, 2*basedim] = right[-1,...] #bottom-right
+        cube[3*basedim:, basedim-1] = left[:,0][::-1] # back-left
+        cube[3*basedim:, 2*basedim] = right[:,-1][::-1] # back-right
 
         return cls(cube, format_="cube")
 
@@ -232,8 +234,6 @@ class EnvironmentMap:
 
     def interpolate(self, u, v, valid=None, method='linear'):
         """"Interpolate to get the desired pixel values."""
-        target = np.vstack((v.flatten()*self.data.shape[0], u.flatten()*self.data.shape[1]))
-
         # Repeat the first and last rows/columns for interpolation purposes
         if len(self.data.shape) == 2:
             h, w = self.data.shape
@@ -250,6 +250,7 @@ class EnvironmentMap:
         # To avoid displacement due to the padding
         u += 1./self.data.shape[1]
         v += 1./self.data.shape[0]
+        target = np.vstack((v.flatten()*self.data.shape[0], u.flatten()*self.data.shape[1]))
 
         data = np.zeros((u.shape[0], u.shape[1], d))
         for c in range(d):
