@@ -69,7 +69,7 @@ class EnvironmentMap:
             "Unknown format: {}".format(format_))
 
         self.format_ = format_.lower()
-        self.backgroundColor = np.array([0, 0, 0])
+        self.backgroundColor = np.array([0, 0, 0]) if im.ndim == 2 else np.zeros(im.shape[-1])
 
         if isinstance(im, str):
             # We received the filename
