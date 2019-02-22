@@ -69,7 +69,6 @@ class EnvironmentMap:
             "Unknown format: {}".format(format_))
 
         self.format_ = format_.lower()
-        self.backgroundColor = np.array([0, 0, 0]) if im.ndim == 2 else np.zeros(im.shape[-1])
 
         if isinstance(im, str):
             # We received the filename
@@ -105,6 +104,8 @@ class EnvironmentMap:
         else:
             raise Exception('Could not understand input. Please provide a '
                             'filename, a single size (height) or an image.')
+
+        self.backgroundColor = np.array([0, 0, 0]) if self.data.ndim == 2 else np.zeros(self.data.shape[-1])
 
         # Ensure size is valid
         if self.format_ in ['sphere', 'angular', 'skysphere', 'skyangular']:
