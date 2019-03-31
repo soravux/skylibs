@@ -28,7 +28,7 @@ def imwrite(data, filename):
     elif ext in ['.hdr', '.pic']:
         _hdr_write(filename, data)
     else:
-        imsave_ldr(filename, (data * 255).astype('uint8'))
+        imsave_ldr(filename, np.clip(255.*data, 0, 255).astype('uint8'))
 
 
 def imsave(filename, data):
