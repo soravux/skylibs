@@ -5,7 +5,7 @@ import numpy as np
 from scipy import misc as scipy_io
 
 
-__version__ = "0.2"
+__version__ = "0.5"
 
 
 try:
@@ -96,11 +96,36 @@ Refer to the ImageIO API ( http://imageio.readthedocs.io/en/latest/userapi.html
     imageio.imwrite(filename, data, **kwargs)
 
 
-def _hdr_read(filename, **kwargs):
-    """Read a Radiance hdr file.
-Refer to the ImageIO API ( http://imageio.readthedocs.io/en/latest/userapi.html
-) for parameter description."""
-    return imageio.imread(filename, **kwargs)
+def _hdr_read(filename, use_imageio=False):
+    """Read hdr file.
+
+.. TODO:
+
+    * Support axis other than -Y +X
+"""
+    if use_imageio:
+        return imageio.imread(filename, **kwargs)
+
+    with open(filename, "rb") as f:
+        MAGIC = f.readline().strip()
+        assert MAGIC == b'#?RADIANCE', "Wrong header found in {}".format(filename)
+        comments = b""
+        while comments[:6] != b"FORMAT":
+            comments = f.readline().strip()
+            assert comments[:3] != b"-Y ", "Could not find data format"
+        assert comments == b'FORMAT=32-bit_rle_rgbe', "Format not supported"
+        while comments[:3] != b"-Y ":
+            comments = f.readline().strip()
+        _, height, _, width = comments.decode("ascii").split(" ")
+        height, width = int(height), int(width)
+        rgbe = np.fromfile(f, dtype=np.uint8).reshape((height, width, 4))
+        rgb = np.empty((height, width, 3), dtype=np.float)
+        rgb[...,0] = np.ldexp(rgbe[...,0], rgbe[...,3].astype('int') - 128)
+        rgb[...,1] = np.ldexp(rgbe[...,1], rgbe[...,3].astype('int') - 128)
+        rgb[...,2] = np.ldexp(rgbe[...,2], rgbe[...,3].astype('int') - 128)
+        # TODO: This will rescale all the values to be in [0, 1]. Find a way to retrieve the original values.
+        rgb /= rgb.max()
+    return rgb
 
 
 __all__ = ['imwrite', 'imsave', 'imread']
