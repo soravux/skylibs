@@ -5,6 +5,15 @@ Tools used for LDR/HDR environment map (IBL) handling and IO.
 
 ### envmap
 
+Example usage:
+```
+from envmap import EnvironmentMap
+
+e = EnvironmentMap('envmap.exr', 'latlong')
+e_angular = e.copy().convertTo('angular')
+e_angular_sa = e_angular.solidAngles()
+```
+
 `envmap.EnvironmentMap` Environment map class. Converts easily between those formats:
 
 - latlong (equirectangular)
@@ -49,11 +58,19 @@ Internal exr reader and writer.
 - `NfromZ`: derivates the normals from a depth map `surf`.
 - `ZfromN`: Integrates a depth map from a normal map `normals`.
 - `display.plotDepth`: Creates a 3-subplot figure that shows the depth map `Z` and two side views.
-- `spharm.FSHT` Fash Spherical Harmonic Transform
-- `spharm.iFSHT` inverse Fash Spherical Harmonic Transform
-- `spharm.sphericalHarmonicTransform` Spherical Harmonic Transform
-- `spharm.inverseSphericalHarmonicTransform` inverse Spherical Harmonic Transform
+- `spharm.SphericalHarmonic` Spherical Harmonic Transform (uses `pyshtools`)
 
+
+Example usage of `spharm`:
+```
+from envmap import EnvironmentMap
+from envmap import spharm
+
+e = EnvironmentMap('envmap.exr', 'latlong')
+sh = spharm.SphericalHarmonic(e)
+print(sh.coeffs)
+reconstruction = sh.reconstruct(height=64)
+```
 
 ### hdrtools
 
