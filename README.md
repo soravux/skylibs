@@ -64,7 +64,7 @@ Internal exr reader and writer.
 Example usage of `spharm`:
 ```
 from envmap import EnvironmentMap
-from envmap import spharm
+from tools3d import spharm
 
 e = EnvironmentMap('envmap.exr', 'latlong')
 sh = spharm.SphericalHarmonic(e)
