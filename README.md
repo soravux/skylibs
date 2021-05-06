@@ -32,6 +32,7 @@ Available methods:
 - `.resize(targetSize)`: Resize the environment map. Be cautious, this function does not ensure energy is preserved!
 - `.toIntensity()`: Convert to grayscale.
 - `.getMeanLightVectors(normals)`: Compute the mean light vector of the environment map for the given normals.
+- `.project(self, vfov, rotation_matrix, ar=4./3., resolution=(640, 480), projection="perspective", mode="normal")`: Extract a rectified image from the panorama. See [the code](https://github.com/soravux/skylibs/blob/master/envmap/environmentmap.py#L402) for details.
 
 Internal functions:
 - `.imageCoordinates()`: returns the (u, v) coordinates at teach pixel center.
