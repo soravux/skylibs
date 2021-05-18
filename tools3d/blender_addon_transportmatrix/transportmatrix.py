@@ -1,8 +1,8 @@
 bl_info = {
     "name": "Generate Transport Matrix",
     "author": "Yannick Hold-Geoffroy",
-    "version": (0, 1, 0),
-    "blender": (2, 7, 9),
+    "version": (0, 2, 0),
+    "blender": (2, 92, 0),
     "category": "Import-Export",
     "location": "File > Export > Generate Transport Matrix",
     "description": "Export the current camera viewport to a transport matrix.",
@@ -28,10 +28,11 @@ import time
 def getClosestIntersection(clip_end, ray_begin, ray_direction):
     min_normal = None
     min_location = None
-    success, location, normal, index, object, matrix = bpy.data.scenes["Scene"].ray_cast(ray_begin,
-                                                                                         ray_direction - ray_begin)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    success, location, normal, index, object, matrix = bpy.context.scene.ray_cast(depsgraph, ray_begin, ray_direction - ray_begin)
+
     if success:
-        min_normal = matrix.to_3x3().normalized() * normal.copy()
+        min_normal = matrix.to_3x3().normalized() @ normal.copy()
         min_location = location.copy()
     return min_normal, min_location
 
@@ -169,8 +170,8 @@ class GenerateTransportMatrix(bpy.types.Operator):
         resy = int(bpy.data.scenes["Scene"].render.resolution_y * resp)
 
         # Get the camera viewport corner 3D coordinates
-        frame = cam.data.view_frame(bpy.context.scene)
-        tr, br, bl, tl = [cam.matrix_world * corner for corner in frame]
+        frame = cam.data.view_frame()
+        tr, br, bl, tl = [cam.matrix_world @ corner for corner in frame]
         x = br - bl
         dx = x.normalized()
         y = tl - bl
@@ -221,12 +222,12 @@ def menu_export(self, context):
 
 
 def register():
-    bpy.types.INFO_MT_file_export.append(menu_export)
+    bpy.types.TOPBAR_MT_file_export.append(menu_export)
     bpy.utils.register_class(GenerateTransportMatrix)
 
 
 def unregister():
-    bpy.types.INFO_MT_file_export.remove(menu_export)
+    bpy.types.TOPBAR_MT_file_export.remove(menu_export)
     bpy.utils.unregister_class(GenerateTransportMatrix)
 
 
