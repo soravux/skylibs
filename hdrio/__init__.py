@@ -2,8 +2,7 @@ import os
 import subprocess
 
 import numpy as np
-from scipy import misc as scipy_io
-
+import imageio
 
 __version__ = "0.5"
 
@@ -13,12 +12,7 @@ try:
 except ImportError as e:
     print("Could not import exr module:", e)
 
-try:
-    import imageio
-    imsave_ldr = imageio.imwrite
-except ImportError as e:
-    imsave_ldr = scipy_io.imsave
-    print("Could not import hdr module:", e)
+imsave_ldr = imageio.imwrite
 
 
 def imwrite(data, filename):
@@ -57,12 +51,12 @@ def imread(filename, format_="float32"):
             import tifffile as tiff
         except ImportError:
             print('Install tifffile for better tiff support. Fallbacking to '
-                  'scipy.')
-            im = scipy_io.imread(filename)
+                  'imageio.')
+            im = imageio.imread(filename)
         else:
             im = tiff.imread(filename)
     else:
-        im = scipy_io.imread(filename)
+        im = imageio.imread(filename)
         ldr = True
 
     if format_ == "native":
