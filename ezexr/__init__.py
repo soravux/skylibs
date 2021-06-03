@@ -12,13 +12,16 @@ float* writeEXRfloat(const char filename[], const char *channel_names[], const f
 """
 
 if os.name == 'nt':
-    from cffi import FFI
-    ffi = FFI()
-    ffi.cdef(cffi_def)
-    to_precache = ["libstdc++-6.dll", "libgcc_s_sjlj-1.dll", "libzlib.dll", "libHalf.dll", "libIex-2_2.dll",
-                   "libIlmThread-2_2.dll", "libImath-2_2.dll", "libIlmImf-2_2.dll"]
-    [ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), x)) for x in to_precache]
-    C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "wrapper.dll"))
+    try:
+        from cffi import FFI
+        ffi = FFI()
+        ffi.cdef(cffi_def)
+        to_precache = ["libstdc++-6.dll", "libgcc_s_sjlj-1.dll", "libzlib.dll", "libHalf.dll", "libIex-2_2.dll",
+                    "libIlmThread-2_2.dll", "libImath-2_2.dll", "libIlmImf-2_2.dll"]
+        [ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), x)) for x in to_precache]
+        C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "wrapper.dll"))
+    except Exception as e:
+        print("exr functionalities will not work, could not load dll: {}".format(e))
 else:
     try:
         import OpenEXR
