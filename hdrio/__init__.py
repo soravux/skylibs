@@ -4,7 +4,7 @@ import subprocess
 import numpy as np
 import imageio
 
-__version__ = "0.5"
+__version__ = "0.6"
 
 
 try:
