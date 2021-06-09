@@ -419,7 +419,8 @@ class EnvironmentMap:
         if projection == "orthographic":
             vfov = np.arctan(np.sin(vfov*np.pi/180.))*180/np.pi
 
-        hfov = vfov*ar
+        # aspect ratio in pixels
+        hfov = 2 * np.arctan(np.tan(vfov*np.pi/180./2)*ar)*180/np.pi
 
         # Project angle on the sphere to the +Z plane (distance=1 from the camera)
         mu = np.tan(hfov/2.*np.pi/180.)
