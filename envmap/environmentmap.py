@@ -4,12 +4,12 @@ from copy import deepcopy
 import numpy as np
 from scipy.ndimage.interpolation import map_coordinates, zoom
 
-from rotlib import rotx, roty, rotz
 from hdrio import imread
 
 from .tetrahedronSolidAngle import tetrahedronSolidAngle
 from .projections import *
 from .xmlhelper import EnvmapXMLParser
+from .rotations import rotx, roty, rotz
 
 
 SUPPORTED_FORMATS = [
