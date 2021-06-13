@@ -78,6 +78,11 @@ reconstruction = sh.reconstruct(height=64)
 Tonemapping using `pfstools`.
 
 
+## Changelog
+
+0.6.1: Aspect ratio in `project()` now in pixels
+0.6: Updated the transport matrix Blender plugin to 2.8+
+
 
 ## Roadmap
 
@@ -85,6 +90,6 @@ Tonemapping using `pfstools`.
 - Standalone `ezexr` on all platforms
 - add `worldCoordinates()` output in spherical coordinates instead of (x, y, z)
 - Add assert that data is float32 in convertTo/resize (internal bugs in scipy interpolation)
-- bugfix: `.rotate()` not working on grayscale (2D) data
-- bugfix: `.convertTo()` not working on grayscale (2D) data
+- bugfix: `.rotate()` not working on grayscale (2D) data (current fix: make the array 3D with 1 channel)
+- bugfix: `.convertTo()` not working on grayscale (2D) data (current fix: make the array 3D with 1 channel)
 
