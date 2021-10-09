@@ -1,58 +1,14 @@
-import os
-import sys
-import array
-import time
 import warnings
 
 import numpy as np
 
-cffi_def = """
-float* readEXRfloat(const char filename[], char ***channel_names, int *width, int *height, int *nb_channels);
-float* writeEXRfloat(const char filename[], const char *channel_names[], const float *data, int width, int height, int nb_channels);
-"""
 
-if os.name == 'nt':
-    try:
-        from cffi import FFI
-        ffi = FFI()
-        ffi.cdef(cffi_def)
-        to_precache = ["libstdc++-6.dll", "libgcc_s_sjlj-1.dll", "libzlib.dll", "libHalf.dll", "libIex-2_2.dll",
-                    "libIlmThread-2_2.dll", "libImath-2_2.dll", "libIlmImf-2_2.dll"]
-        [ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), x)) for x in to_precache]
-        C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "wrapper.dll"))
-    except Exception as e:
-        print("exr functionalities will not work, could not load dll: {}".format(e))
-else:
-    try:
-        import OpenEXR
-        import Imath
-    except ImportError:
-        if sys.platform == "darwin":
-            from cffi import FFI
-            ffi = FFI()
-            ffi.cdef(cffi_def)
-            C = ffi.dlopen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "wrapper.dylib"))
-        else:
-            raise
+try:
+    import OpenEXR
+    import Imath
 
-
-def imread_raw_custom_(filename):
-    width = ffi.new("int*")
-    height = ffi.new("int*")
-    nb_channels = ffi.new("int*")
-
-    cn = ffi.new("char***", ffi.new("char**", ffi.NULL))
-    fn = ffi.new("char[]", bytes(filename, 'ascii'))
-    ret = C.readEXRfloat(fn, cn, width, height, nb_channels)
-
-    width = width[0]
-    height = height[0]
-    nb_channels = nb_channels[0]
-
-    vals = np.frombuffer(ffi.buffer(ret, width*height*nb_channels*4), dtype=np.float32).reshape([height, width, nb_channels])
-    channels = [ffi.string(cn[0][i]).decode('ascii') for i in range(nb_channels)]
-
-    return vals, channels
+except Exception as e:
+    print("exr functionalities will not work, could not load dll: {}".format(e))
 
 
 def imread(filename, bufferImage=None, rgb=True):
@@ -68,21 +24,6 @@ def imread(filename, bufferImage=None, rgb=True):
           If False: Returns all channels independently
           If "hybrid": "<identifier>.[R|G|B|A|X|Y|Z]" -> merged to an image
     """
-    # Check if we should use the custom wrapper
-    if 'OpenEXR' not in globals():
-        if rgb is not True:
-            raise NotImplemented()
-
-        if bufferImage:
-            warnings.warn("Buffer passing not supported yet with custom wrapper", RuntimeWarning)
-        im, ch = imread_raw_custom_(filename)
-        if len(ch) == 1:
-            return im
-
-        channelsToUse = ('R', 'G', 'B', 'A') if 'A' in ch else ('R', 'G', 'B')
-        ordering = [ch.index(x) for x in channelsToUse]
-
-        return im[:,:,ordering]
 
     # Open the input file
     f = OpenEXR.InputFile(filename)

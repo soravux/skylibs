@@ -1,1 +1,0 @@
-g++ -shared -I/usr/local/Cellar/ilmbase/2.2.0/include/OpenEXR/ -I/usr/local//Cellar/openexr/2.2.0/include/OpenEXR/ -L/usr/local/Cellar/ilmbase/2.2.0/lib -L/usr/local/Cellar/openexr/2.2.0/lib -lilmimf -lIex -lIexMath -lIlmThread -lImath -lHalf wrapper.cpp -o wrapper.dylib

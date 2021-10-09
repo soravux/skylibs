@@ -2,6 +2,22 @@
 
 Tools used for LDR/HDR environment map (IBL) handling and IO.
 
+### OpenEXR & Spherical harmonics
+
+To read and save `exr` files, install the following dependencies (works on win/mac/linux):
+
+```
+conda install -c conda-forge openexr-python openexr
+```
+
+
+### Spherical Harmonics
+
+To use the spherical harmonics functionalities, install the following dependency (works on mac/linux):
+
+```
+conda install -c conda-forge pyshtools
+```
 
 ### envmap
 
@@ -80,6 +96,8 @@ Tonemapping using `pfstools`.
 
 ## Changelog
 
+0.6.3: Removed custom OpenEXR bindings (can be easily installed using conda)
+0.6.2: Removed `rotlib` dependency
 0.6.1: Aspect ratio in `project()` now in pixels
 0.6: Updated the transport matrix Blender plugin to 2.8+
 
