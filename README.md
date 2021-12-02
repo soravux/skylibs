@@ -1,6 +1,17 @@
 ## skylibs
 
-Tools used for LDR/HDR environment map (IBL) handling and IO.
+Tools used for LDR/HDR environment map (IBL) handling, conversion and I/O.
+
+
+### Install & Develop
+
+Install using:
+```
+pip install skylibs
+```
+
+To develop skylibs, clone the repository and execute `python setup.py develop`
+
 
 ### OpenEXR & Spherical harmonics
 
@@ -54,6 +65,33 @@ Internal functions:
 - `.imageCoordinates()`: returns the (u, v) coordinates at teach pixel center.
 - `.worldCoordinates()`: returns the (x, y, z) world coordinates for each pixel center.
 - `.interpolate(u, v, valid, method='linear')`: interpolates
+
+
+### Projection, cropping, simulating a camera
+
+To perform a crop from a `pano.jpg`:
+
+```
+import numpy as np
+from imageio import imread, imsave
+from envmap import EnvironmentMap, rotation_matrix
+
+
+e = EnvironmentMap('pano.jpg', 'latlong')
+
+dcm = rotation_matrix(azimuth=np.pi/6,
+                      elevation=np.pi/8,
+                      roll=np.pi/12)
+crop = e.project(vfov=85., # degrees
+                 rotation_matrix=dcm,
+                 ar=4./3.,
+                 resolution=(640, 480),
+                 projection="perspective",
+                 mode="normal")
+
+crop = np.clip(255.*crop, 0, 255).astype('uint8')
+imsave("crop.jpg", crop, quality=90)
+```
 
 ### hdrio
 
