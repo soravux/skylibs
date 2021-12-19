@@ -8,7 +8,7 @@ try:
     import Imath
 
 except Exception as e:
-    print("exr functionalities will not work, could not load dll: {}".format(e))
+    pass
 
 
 def imread(filename, bufferImage=None, rgb=True):
@@ -21,9 +21,14 @@ def imread(filename, bufferImage=None, rgb=True):
                   of a sufficient size to contain the data.
                   If it is None, a new array is created and returned.
     :rgb: If True: tries to get the RGB(A) channels as an image
-          If False: Returns all channels independently
+          If False: Returns all channels in a dict()
           If "hybrid": "<identifier>.[R|G|B|A|X|Y|Z]" -> merged to an image
+                       Useful for Blender Cycles' output.
     """
+
+    if 'OpenEXR' not in globals():
+        print(">>> Install OpenEXR-Python with `conda install -c conda-forge openexr openexr-python`\n\n")
+        raise Exception("Please Install OpenEXR-Python")
 
     # Open the input file
     f = OpenEXR.InputFile(filename)
@@ -42,6 +47,7 @@ def imread(filename, bufferImage=None, rgb=True):
 
     # Get the number of channels
     nc = len(header['channels'])
+    print(nc)
 
     # Check the data type
     dtGlobal = list(header['channels'].values())[0].type
@@ -101,15 +107,13 @@ def imwrite(filename, arr, **params):
     """
     Write an .exr file from an input array.
 
-    Optionnal params : 
+    Optional params : 
+    channel_names = name of the channels, defaults to "RGB" for 3-channel, "Y" for grayscale, and "Y{n}" for N channels.
     compression = 'NONE' | 'RLE' | 'ZIPS' | 'ZIP' | 'PIZ' | 'PXR24' (default PIZ)
     pixeltype = 'HALF' | 'FLOAT' | 'UINT' (default : dtype of the input array if float16, float32 or uint32, else float16)
 
-.. todo::
-
-      Test it
-
     """
+
     if arr.ndim == 3:
         h, w, d = arr.shape
     elif arr.ndim == 2:
@@ -117,28 +121,23 @@ def imwrite(filename, arr, **params):
         d = 1
     else:
         raise Exception("Could not understand dimensions in array.")
-
-    # Check if we should use the custom wrapper
-    if 'OpenEXR' not in globals():
+    
+    if "channel_names" in params:
+        ch_names = params["channel_names"]
+        assert ch_names >= d, "Provide as many channel names as channels in the array."
+    else:
         if d == 1:
-            cl = "Y"
+            ch_names = ["Y"]
         elif d == 3:
-            cl = "RGB"
-        elif d == 4:
-            cl = "RGBA"
-        cl = [ffi.new("char*", bytes(x, "ascii")) for x in cl]
+            ch_names = ["R","G","B"]
+        else:
+            ch_names = ['Y{}'.format(idx) for idx in range(d)]
 
-        #import pdb; pdb.set_trace()
-        fn = ffi.new("char[]", bytes(filename, 'ascii'))
-        cn = ffi.new("char*[]", cl)
-        data_np = np.ascontiguousarray(arr.transpose([2,0,1]).astype("float32"))
-        data = ffi.cast("float*", data_np.ctypes.data)
-        print(fn, cn, data, w, h, d)
-        C.writeEXRfloat(fn, cn, data, w, h, d)
+    if 'OpenEXR' not in globals():
+        print(">>> Install OpenEXR-Python with `conda install -c conda-forge openexr openexr-python`\n\n")
+        raise Exception("Please Install OpenEXR-Python")
 
-        return
-
-    compression = 'PIZ' if not 'compression' in params or\
+    compression = 'PIZ' if not 'compression' in params or \
                      params['compression'] not in ('NONE', 'RLE', 'ZIPS', 'ZIP', 'PIZ', 'PXR24') else params['compression']
     imath_compression = {'NONE' : Imath.Compression(Imath.Compression.NO_COMPRESSION),
                             'RLE' : Imath.Compression(Imath.Compression.RLE_COMPRESSION),
@@ -164,8 +163,10 @@ def imwrite(filename, arr, **params):
         the_min = np.abs(arr_fin[arr_fin > 0]).min()
 
         if the_max <= 65504. and the_min >= 1e-7:
+            print("Autodetected HALF (FLOAT16) format")
             pixformat = 'HALF'
         elif the_max < 3.402823e+38 and the_min >= 1.18e-38:
+            print("Autodetected FLOAT32 format")
             pixformat = 'FLOAT'
         else:
             raise Exception('Could not convert array into exr without loss of information '
@@ -181,22 +182,30 @@ def imwrite(filename, arr, **params):
                         'UINT' : 'uint32'}[pixformat]      # Not sure for the last one...
 
     # Convert to strings
-    # TODO: Investigate the side-effects of the float cast
-    R, G, B = [ x.astype(numpy_pixformat).tostring() for x in [arr[:,:,0], arr[:,:,1], arr[:,:,2]] ]
-    #(R, G, B) = [ array.array('f', Chan).tostring() for Chan in (arr[:,:,0], arr[:,:,1], arr[:,:,2]) ]
+    if d == 1:
+        data = [ arr.astype(numpy_pixformat).tostring() ]
+    else:
+        data = [ arr[:,:,c].astype(numpy_pixformat).tostring() for c in range(d) ]
 
     outHeader = OpenEXR.Header(w, h)
     outHeader['compression'] = imath_compression        # Apply compression
-    for channel in outHeader['channels']:               # Apply pixel format
-        outHeader['channels'][channel] = Imath.Channel(imath_pixformat, 1, 1)
+    outHeader['channels'] = {                           # Apply pixel format
+        ch_names[i]: Imath.Channel(imath_pixformat, 1, 1) for i in range(d)
+    }
 
     # Write the three color channels to the output file
     out = OpenEXR.OutputFile(filename, outHeader)
-    out.writePixels({'R' : R, 'G' : G, 'B' : B })
+    if d == 1:
+        out.writePixels({ch_names[0] : data[0] })
+    elif d == 3:
+        out.writePixels({ch_names[0] : data[0], ch_names[1] : data[1], ch_names[2] : data[2] })
+    else:
+        out.writePixels({ch_names[c] : data[c] for c in range(d)})
 
     out.close()
 
 
 imsave = imwrite
+
 
 __all__ = ['imread', 'imwrite', 'imsave']
