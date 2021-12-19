@@ -239,9 +239,11 @@ class EnvironmentMap:
         if len(self.data.shape) == 2:
             h, w = self.data.shape
             d = 1
+            source = np.empty((h + 2, w + 2))
         else:
             h, w, d = self.data.shape
-        source = np.empty((h + 2, w + 2, d))
+            source = np.empty((h + 2, w + 2, d))
+
         source[1:-1, 1:-1] = self.data
         source[0,1:-1] = self.data[0,:]; source[0,0] = self.data[0,0]; source[0,-1] = self.data[0,-1]
         source[-1,1:-1] = self.data[-1,:]; source[-1,0] = self.data[-1,0]; source[-1,-1] = self.data[-1,-1]
@@ -411,11 +413,13 @@ class EnvironmentMap:
 
         eTmp = EnvironmentMap(targetDim, targetFormat)
         dx, dy, dz, valid = eTmp.worldCoordinates()
-        aspect_ratio = image.shape[1]/image.shape[0]
+        ar = image.shape[1]/image.shape[0]
 
-        hfov = vfov*aspect_ratio
-        fx = 0.5/np.tan(hfov*np.pi/180./2.)
-        fy = 0.5/np.tan(vfov*np.pi/180./2.)
+        vfov_half_rad = vfov/2.*np.pi/180.
+        hfov_half_rad = np.arctan(np.tan(vfov_half_rad)*ar)
+
+        fx = 0.5/np.tan(hfov_half_rad)
+        fy = 0.5/np.tan(vfov_half_rad)
         u0 = 0.5
         v0 = 0.5
 
@@ -425,7 +429,7 @@ class EnvironmentMap:
                       [0,  0,  1]])
         M = K.dot(rotation_matrix)
 
-        xyz = np.dstack((dx, dy, dz)).reshape((-1, 3)).T
+        xyz = np.dstack((-dx, dy, dz)).reshape((-1, 3)).T
 
         # mask behind the camera
         forward_vector = rotation_matrix.T.dot(np.array([0, 0, -1]).T)
