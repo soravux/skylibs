@@ -1,4 +1,3 @@
-import os
 from setuptools import setup
 
 
@@ -9,7 +8,7 @@ setup(
     author_email='yannickhold@gmail.com',
     license="LGPLv3",
     url='https://github.com/soravux/skylibs',
-    version='0.6.4',
+    version='0.6.5',
     packages=['ezexr', 'envmap', 'hdrio', 'hdrtools', 'hdrtools/tonemapping', 'skydb', 'tools3d'],
     include_package_data=True,
     install_requires=['imageio>=1.6', 'tqdm', 'numpy', 'scipy'],
