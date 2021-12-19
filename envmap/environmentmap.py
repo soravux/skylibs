@@ -233,12 +233,12 @@ class EnvironmentMap:
         }.get(self.format_)
         return func(x, y, z)
 
-    def interpolate(self, u, v, valid=None, method='linear'):
+    def interpolate(self, u, v, valid=None, order=1, filter=True):
         """"Interpolate to get the desired pixel values."""
         # Repeat the first and last rows/columns for interpolation purposes
         if len(self.data.shape) == 2:
             h, w = self.data.shape
-            d = 1
+            d = 0
             source = np.empty((h + 2, w + 2))
         else:
             h, w, d = self.data.shape
@@ -255,9 +255,13 @@ class EnvironmentMap:
         v += 1./self.data.shape[0]
         target = np.vstack((v.flatten()*self.data.shape[0], u.flatten()*self.data.shape[1]))
 
-        data = np.zeros((u.shape[0], u.shape[1], d))
-        for c in range(d):
-            map_coordinates(source[:,:,c], target, output=data[:,:,c].reshape(-1), cval=np.nan, order=1, prefilter=False)
+        if d == 0:
+            data = np.zeros((u.shape[0], u.shape[1]))
+            map_coordinates(source, target, output=data.ravel(), cval=np.nan, order=order, prefilter=filter)
+        else:
+            data = np.zeros((u.shape[0], u.shape[1], d))
+            for c in range(d):
+                map_coordinates(source[:,:,c], target, output=data[:,:,c].reshape(-1), cval=np.nan, order=order, prefilter=filter)
         self.data = data
 
         # In original: valid &= ~isnan(data)...
