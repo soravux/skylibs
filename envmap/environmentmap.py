@@ -399,6 +399,48 @@ class EnvironmentMap:
 
         return meanlight
 
+    def embed(self, vfov, rotation_matrix, image):
+        """Projects an image onto the environment map.
+
+        :vfov: Vertical Field of View (degrees).
+        :rotation_matrix: Camera rotation matrix.
+        :image: The image to project."""
+
+        targetDim = self.data.shape[0]
+        targetFormat = self.format_
+
+        eTmp = EnvironmentMap(targetDim, targetFormat)
+        dx, dy, dz, valid = eTmp.worldCoordinates()
+        aspect_ratio = image.shape[1]/image.shape[0]
+
+        hfov = vfov*aspect_ratio
+        fx = 0.5/np.tan(hfov*np.pi/180./2.)
+        fy = 0.5/np.tan(vfov*np.pi/180./2.)
+        u0 = 0.5
+        v0 = 0.5
+
+        # world2image for a camera
+        K = np.array([[fx, 0, u0],
+                      [0, fy, v0],
+                      [0,  0,  1]])
+        M = K.dot(rotation_matrix)
+
+        xyz = np.dstack((dx, dy, dz)).reshape((-1, 3)).T
+
+        # mask behind the camera
+        forward_vector = rotation_matrix.T.dot(np.array([0, 0, -1]).T)
+        mask = forward_vector.dot(xyz) <= 0
+        xyz[:,mask] = np.inf
+
+        uv = M.dot(xyz)
+        u = (uv[0,:]/uv[2,:]).reshape(self.data.shape[:2])
+        v = (uv[1,:]/uv[2,:]).reshape(self.data.shape[:2])
+
+        self.format_ = targetFormat.lower()
+        self.data = image.copy()
+        self.interpolate(u, v, valid)
+        return self
+
     def project(self, vfov, rotation_matrix, ar=4./3., resolution=(640, 480),
                 projection="perspective", mode="normal"):
         """Perform a projection onto a plane ("_simulates_" a camera).
@@ -408,12 +450,36 @@ class EnvironmentMap:
 
         :vfov: Vertical Field of View (degrees).
         :rotation_matrix: Camera rotation matrix.
-        :ar: Aspect ratio (width / height).
-        :resolution: Output size in cols x rows (e.g. 640x480).
-        :projection: perspective or orthographic.
-        :mode: "normal": perform crop, "mask": show pixel mask in the envmap."""
+        :ar: Aspect ratio (width / height), defaults to 4/3.
+        :resolution: Output size in (cols, rows), defaults to (640,480).
+        :projection: perspective (default) or orthographic.
+        :mode: "normal": perform crop (default)
+               "mask": show pixel mask in the envmap,
+               "normal+uv": returns (crop, u, v), where (u,v) are the coordinates
+                            of the crop."""
 
-        if mode not in ("normal", "mask"):
+        coords = self._cameraCoordinates(vfov, rotation_matrix, ar,
+                                         resolution, projection, mode)
+
+        target = self.copy()
+        if target.format_ != "latlong":
+            target = target.convertTo("LatLong")
+
+        # Get image coordinates from world sphere coordinates
+        u, v = target.world2image(coords[0,:], coords[1,:], coords[2,:])
+        u, v = u.reshape(resolution[::-1]), v.reshape(resolution[::-1])
+
+        crop = target.interpolate(u, v).data
+
+        if mode == "normal+uv":
+            return crop, u, v
+
+        return crop
+
+    def _cameraCoordinates(self, vfov, rotation_matrix, ar=4./3., resolution=(640, 480),
+            projection="perspective", mode="normal"):
+
+        if mode not in ("normal", "mask", "normal+uv"):
             raise Exception("Unknown mode: {}.".format(mode))
 
         if projection == "orthographic":
@@ -433,8 +499,8 @@ class EnvironmentMap:
             x = xy*np.sin(theta)
             y = xy*np.cos(theta)
 
-            hmask = (x>-mu) & (x<mu)
-            vmask = (y>-mv) & (y<mv)
+            hmask = (x > -mu) & (x < mu)
+            vmask = (y > -mv) & (y < mv)
             dmask = z < 0
             mask = hmask & vmask & dmask
 
@@ -466,15 +532,7 @@ class EnvironmentMap:
         # Perform rotation
         coords = rotation_matrix.T.dot(coords)
 
-        target = self.copy()
-        if target.format_ != "latlong":
-            target = target.convertTo("LatLong")
-
-        # Get image coordinates from world sphere coordinates
-        u, v = target.world2image(coords[0,:], coords[1,:], coords[2,:])
-        u, v = u.reshape(resolution[::-1]), v.reshape(resolution[::-1])
-
-        return target.interpolate(u, v).data
+        return coords
 
 
 def rotation_matrix(azimuth, elevation, roll=0):
