@@ -134,6 +134,7 @@ Tonemapping using `pfstools`.
 
 ## Changelog
 
+0.6.6: Fixed aspect ratio when embedding
 0.6.5: Added envmap embed feature
 0.6.4: Removed `pyshtools` as mandatory dependency
 0.6.3: Removed custom OpenEXR bindings (can be easily installed using conda)
