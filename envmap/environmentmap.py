@@ -469,6 +469,9 @@ class EnvironmentMap:
         coords = self._cameraCoordinates(vfov, rotation_matrix, ar,
                                          resolution, projection, mode)
 
+        if mode == "mask":
+            return coords
+        
         target = self.copy()
         if target.format_ != "latlong":
             target = target.convertTo("LatLong")
