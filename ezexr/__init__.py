@@ -124,7 +124,7 @@ def imwrite(filename, arr, **params):
     
     if "channel_names" in params:
         ch_names = params["channel_names"]
-        assert ch_names >= d, "Provide as many channel names as channels in the array."
+        assert len(ch_names) >= d, "Provide as many channel names as channels in the array."
     else:
         if d == 1:
             ch_names = ["Y"]
