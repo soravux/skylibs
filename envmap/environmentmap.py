@@ -433,7 +433,7 @@ class EnvironmentMap:
                       [0,  0,  1]])
         M = K.dot(rotation_matrix)
 
-        xyz = np.dstack((-dx, dy, dz)).reshape((-1, 3)).T
+        xyz = np.dstack((dx, dy, dz)).reshape((-1, 3)).T
 
         # mask behind the camera
         forward_vector = rotation_matrix.T.dot(np.array([0, 0, -1]).T)
@@ -445,7 +445,7 @@ class EnvironmentMap:
         v = (uv[1,:]/uv[2,:]).reshape(self.data.shape[:2])
 
         self.format_ = targetFormat.lower()
-        self.data = image.copy()
+        self.data = image.copy()[:,::-1,...]
         self.interpolate(u, v, valid)
         return self
 
