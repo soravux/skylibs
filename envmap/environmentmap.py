@@ -258,8 +258,14 @@ class EnvironmentMap:
         assert valid.shape[:2] == self.data.shape[:2], "`valid` must be the same size as the EnvironmentMap."
 
         self.backgroundColor = np.asarray(color)
+        if self.backgroundColor.size == 1 and self.data.shape[2] != self.backgroundColor.size:
+            self.backgroundColor = np.tile(self.backgroundColor, (self.data.shape[2],))
 
-        self.data[np.tile(np.invert(valid)[:,:,None], (1, 1, self.data.shape[2]))] = self.backgroundColor
+        assert self.data.shape[2] == self.backgroundColor.size, "Channel number mismatch when setting background color"
+
+        mask = np.invert(valid)
+        if mask.sum() > 0:
+            self.data[np.tile(mask[:,:,None], (1, 1, self.data.shape[2]))] = np.tile(self.backgroundColor, (mask.sum(),))
 
         return self
 
