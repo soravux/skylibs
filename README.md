@@ -7,7 +7,7 @@ Tools used for LDR/HDR environment map (IBL) handling, conversion and I/O.
 
 Install using:
 ```
-pip install skylibs
+pip install --upgrade skylibs
 ```
 
 To develop skylibs, clone the repository and execute `python setup.py develop`
