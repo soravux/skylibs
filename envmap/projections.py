@@ -18,7 +18,7 @@ def world2skylatlong(x, y, z):
     """Get the (u, v) coordinates of the point defined by (x, y, z) for
     a sky-latitude-longitude map (the zenith hemisphere of a latlong map)."""
     u = 1 + (1 / np.pi) * np.arctan2(x, -z)
-    v = (1 / np.pi) * np.arccos(y) / 2
+    v = (1 / np.pi) * np.arccos(y) * 2
     # because we want [0,1] interval
     u = u / 2
     return u, v
