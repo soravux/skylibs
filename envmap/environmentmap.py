@@ -350,7 +350,7 @@ class EnvironmentMap:
             elif self.format_ == 'skylatlong':
                 targetSize = (targetSize, 4*targetSize)
             elif self.format_ == 'cube':
-                targetSize = (targetSize, round(3/4*targetSize))
+                targetSize = (targetSize, 3/4*targetSize)
             else:
                 targetSize = (targetSize, targetSize)
 
@@ -360,6 +360,11 @@ class EnvironmentMap:
 
         if len(self.data.shape) > 2:
             _size.append(1.0)   # To ensure we do not "scale" the color axis...
+        
+        if _size[0] < 1.:
+            print("Downsizing the environment map may result in loss of energy due to aliasing.")
+            print("This may or may not be an issue for you. Please see `envmap.downscaleEnvmap` for "
+                  "an energy-preserving downsizing.")
 
         self.data = zoom(self.data, _size, order=order)
         return self
@@ -552,6 +557,7 @@ def rotation_matrix(azimuth, elevation, roll=0):
     :elevation: upward (negative) to downward (positive) [rad]
     :roll: counter-clockwise (negative) to clockwise (positive) [rad]"""
     return rotz(roll).dot(rotx(elevation)).dot(roty(-azimuth))
+
 
 def downscaleEnvmap(nenvmap, sao, sat, times):
     """Energy-preserving environment map downscaling by factors of 2.
