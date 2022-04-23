@@ -23,14 +23,6 @@ SUPPORTED_FORMATS = [
     'cube',
 ]
 
-ROTATION_FORMATS = [
-    'DCM',
-    'EA###',    # TODO
-    'EV',       # TODO
-    'Q',        # TODO
-]
-
-
 #From Dan:
 #  I've generated these using the monochromatic albedo values from here:
 #  http://agsys.cra-cin.it/tools/solarradiation/help/Albedo.html
@@ -298,19 +290,18 @@ class EnvironmentMap:
 
         return self
 
-    def rotate(self, format, input_):
+    def rotate(self, dcm):
         """
         Rotate the environment map.
 
-        :param format: Rotation type
         :param input: Rotation information (currently only 3x3 numpy matrix)
         """
         self.validate()
 
-        assert format.upper() in ROTATION_FORMATS, "Unknown rotation type '{}'".format(format)
+        assert type(dcm).__module__ == np.__name__ and dcm.ndim == 2 and dcm.shape == (3, 3)
         dx, dy, dz, valid = self.worldCoordinates()
 
-        ptR = np.dot(input_, np.vstack((dx.flatten(), dy.flatten(), dz.flatten())))
+        ptR = np.dot(dcm, np.vstack((dx.flatten(), dy.flatten(), dz.flatten())))
         dx, dy, dz = ptR[0].reshape(dx.shape), ptR[1].reshape(dy.shape), ptR[2].reshape(dz.shape)
 
         dx = np.clip(dx, -1, 1)
@@ -375,11 +366,9 @@ class EnvironmentMap:
     def toIntensity(self):
         """
         Returns intensity-version of the environment map.
-        This function assumes the CCIR 601 standard to perform internsity conversion.
+        This function assumes the CCIR 601 standard to perform intensity (Luminance) conversion.
         """
         self.validate()
-
-        assert len(self.data.shape) == 3, "Data should have exactly 3 dimensions"
 
         if self.data.shape[2] != 3:
             print("Envmap doesn't have 3 channels. This function won't do anything.")
@@ -398,6 +387,8 @@ class EnvironmentMap:
         Normals should be 3xN.
         Output is 3xN.
         """
+        self.validate()
+
         normals = np.asarray(normals)
         solidAngles = self.solidAngles()
         solidAngles /= np.nansum(solidAngles) # Normalize to 1
@@ -485,7 +476,7 @@ class EnvironmentMap:
 
         if mode == "mask":
             return coords
-        
+
         target = self.copy()
         if target.format_ != "latlong":
             target = target.convertTo("LatLong")
@@ -529,8 +520,8 @@ class EnvironmentMap:
             dmask = z < 0
             mask = hmask & vmask & dmask
 
-            e = EnvironmentMap(mask[:,:,np.newaxis], 'LatLong')
-            e.rotate("DCM", rotation_matrix)
+            e = EnvironmentMap(mask[:,:,np.newaxis], self.format_)
+            e.rotate(rotation_matrix)
 
             mask = e.data[:,:,0]
             return mask
