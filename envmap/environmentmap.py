@@ -1,8 +1,10 @@
 import os
 from copy import deepcopy
+from decimal import Decimal
 
 import numpy as np
 from scipy.ndimage.interpolation import map_coordinates, zoom
+from skimage.transform import resize_local_mean, downscale_local_mean
 
 from hdrio import imread
 
@@ -44,7 +46,7 @@ GROUND_ALBEDOS = {
 
 
 class EnvironmentMap:
-    def __init__(self, im, format_=None, copy=True, color=True):
+    def __init__(self, im, format_=None, copy=True, channels=3):
         """
         Creates an EnvironmentMap.
 
@@ -76,25 +78,13 @@ class EnvironmentMap:
         elif isinstance(im, int):
             # We received a single scalar
             if self.format_ == 'latlong':
-                if color:
-                    self.data = np.zeros((im, im*2, 3))
-                else:
-                    self.data = np.zeros((im, im*2))
+                self.data = np.zeros((im, im*2, channels))
             elif self.format_ == 'skylatlong':
-                if color:
-                    self.data = np.zeros((im, im*4, 3))
-                else:
-                    self.data = np.zeros((im, im*4))
+                    self.data = np.zeros((im, im*4, channels))
             elif self.format_ == 'cube':
-                if color:
-                    self.data = np.zeros((im, round(3/4*im), 3))
-                else:
-                    self.data = np.zeros((im, round(3/4*im)))
+                self.data = np.zeros((im, round(3/4*im), channels))
             else:
-                if color:
-                    self.data = np.zeros((im, im, 3))
-                else:
-                    self.data = np.zeros((im, im))
+                    self.data = np.zeros((im, im, channels))
         elif type(im).__module__ == np.__name__:
             # We received a numpy array
             self.data = np.asarray(im, dtype='double')
@@ -105,9 +95,11 @@ class EnvironmentMap:
             raise Exception('Could not understand input. Please provide a '
                             'filename, a single size (height) or an image.')
 
-        self.backgroundColor = np.array([0, 0, 0]) if self.data.ndim == 2 else np.zeros(self.data.shape[-1])
+        self.backgroundColor = np.zeros(self.data.shape[-1])
+        self.validate()
 
-        # Ensure size is valid
+    def validate(self):
+        # Ensure the envmap is valid
         if self.format_ in ['sphere', 'angular', 'skysphere', 'skyangular']:
             assert self.data.shape[0] == self.data.shape[1], (
                 "Sphere/Angular formats must have the same width/height")
@@ -117,6 +109,8 @@ class EnvironmentMap:
         elif self.format_ == 'skylatlong':
             assert 4*self.data.shape[0] == self.data.shape[1], (
                 "SkyLatLong format width should be four times the height")
+        
+        assert self.data.ndim == 3, "Expected 3-dim array. For grayscale, use [h,w,1]."
 
     @classmethod
     def fromSkybox(cls, top, bottom, left, right, front, back):
@@ -235,14 +229,11 @@ class EnvironmentMap:
 
     def interpolate(self, u, v, valid=None, order=1, filter=True):
         """"Interpolate to get the desired pixel values."""
+        self.validate()
+        
         # Repeat the first and last rows/columns for interpolation purposes
-        if len(self.data.shape) == 2:
-            h, w = self.data.shape
-            d = 0
-            source = np.empty((h + 2, w + 2))
-        else:
-            h, w, d = self.data.shape
-            source = np.empty((h + 2, w + 2, d))
+        h, w, d = self.data.shape
+        source = np.empty((h + 2, w + 2, d))
 
         source[1:-1, 1:-1] = self.data
         source[0,1:-1] = self.data[0,:]; source[0,0] = self.data[0,0]; source[0,-1] = self.data[0,-1]
@@ -255,13 +246,9 @@ class EnvironmentMap:
         v += 1./self.data.shape[0]
         target = np.vstack((v.flatten()*self.data.shape[0], u.flatten()*self.data.shape[1]))
 
-        if d == 0:
-            data = np.zeros((u.shape[0], u.shape[1]))
-            map_coordinates(source, target, output=data.ravel(), cval=np.nan, order=order, prefilter=filter)
-        else:
-            data = np.zeros((u.shape[0], u.shape[1], d))
-            for c in range(d):
-                map_coordinates(source[:,:,c], target, output=data[:,:,c].reshape(-1), cval=np.nan, order=order, prefilter=filter)
+        data = np.zeros((u.shape[0], u.shape[1], d))
+        for c in range(d):
+            map_coordinates(source[:,:,c], target, output=data[:,:,c].reshape(-1), cval=np.nan, order=order, prefilter=filter)
         self.data = data
 
         # In original: valid &= ~isnan(data)...
@@ -278,14 +265,8 @@ class EnvironmentMap:
 
         self.backgroundColor = np.asarray(color)
 
-        grayscale = len(self.data.shape) == 2
-
-        if grayscale:
-            self.data[:,:][np.invert(valid)] = self.backgroundColor.dot(np.array([0.299, 0.587, 0.114]).T)
-        else:
-            nb_channels = self.data.shape[2]
-            for c in range(nb_channels):
-                self.data[:,:,c][np.invert(valid)] = self.backgroundColor[c]
+        for c in range(self.data.shape[2]):
+            self.data[:,:,c][np.invert(valid)] = self.backgroundColor[c]
 
         return self
 
@@ -299,6 +280,8 @@ class EnvironmentMap:
         :type targetFormat: integer
 
         """
+        self.validate()
+
         assert targetFormat.lower() in SUPPORTED_FORMATS, (
             "Unknown format: {}".format(targetFormat))
 
@@ -321,6 +304,8 @@ class EnvironmentMap:
         :param format: Rotation type
         :param input: Rotation information (currently only 3x3 numpy matrix)
         """
+        self.validate()
+
         assert format.upper() in ROTATION_FORMATS, "Unknown rotation type '{}'".format(format)
         dx, dy, dz, valid = self.worldCoordinates()
 
@@ -336,14 +321,16 @@ class EnvironmentMap:
 
         return self
 
-    def resize(self, targetSize, order=1):
+    def resize(self, targetSize, order=1, debug=False):
         """
         Resize the current environnement map to targetSize.
-        targetSize can be a tuple or a single number, in which case the same factor is assumed
-        for both u and v.
-        If 0 < targetSize < 1, treat it as a ratio
-        If targetSize > 1, treat it as new dimensions to use
+        The energy-preserving "pixel mixing" alrogithm is used when downscaling.
+
+        `targetSize` is either the desired `height` or `(height, width)`.
+        `order` is only used when upsampling.
         """
+        self.validate()
+
         if not isinstance(targetSize, tuple):
             if self.format_ == 'latlong':
                 targetSize = (targetSize, 2*targetSize)
@@ -353,18 +340,32 @@ class EnvironmentMap:
                 targetSize = (targetSize, 3/4*targetSize)
             else:
                 targetSize = (targetSize, targetSize)
+        
+        # downsampling
+        if targetSize[0] < self.data.shape[0]:
 
+            if debug == True:
+                old_data = self.data.copy()
+
+            # check if integer
+            if (Decimal(self.data.shape[0]) / Decimal(targetSize[0])) % 1 == 0:
+                print("integer resize")
+                fac = self.data.shape[0] // targetSize[0]
+                self.data = downscale_local_mean(self.data, (fac, fac, 1))
+            else:    
+                self.data = resize_local_mean(self.data, targetSize, grid_mode=True, preserve_range=True)
+
+            if debug == True:
+                print("Energy difference: {:.01f}".format(self.data.sum()/old_data.sum() - 1.))
+
+            return self
+        
+        # upsampling
         _size = []
         for i in range(2):
             _size.append(targetSize[i] / self.data.shape[i] if targetSize[i] > 1. else targetSize[i])
 
-        if len(self.data.shape) > 2:
-            _size.append(1.0)   # To ensure we do not "scale" the color axis...
-        
-        if _size[0] < 1.:
-            print("Downsizing the environment map may result in loss of energy due to aliasing.")
-            print("This may or may not be an issue for you. Please see `envmap.downscaleEnvmap` for "
-                  "an energy-preserving downsizing.")
+        _size.append(1.0)
 
         self.data = zoom(self.data, _size, order=order)
         return self
@@ -374,6 +375,8 @@ class EnvironmentMap:
         Returns intensity-version of the environment map.
         This function assumes the CCIR 601 standard to perform internsity conversion.
         """
+        self.validate()
+
         assert len(self.data.shape) == 3, "Data should have exactly 3 dimensions"
 
         if self.data.shape[2] != 3:
@@ -416,6 +419,8 @@ class EnvironmentMap:
         :vfov: Vertical Field of View (degrees).
         :rotation_matrix: Camera rotation matrix.
         :image: The image to project."""
+
+        self.validate()
 
         targetDim = self.data.shape[0]
         targetFormat = self.format_
@@ -470,6 +475,8 @@ class EnvironmentMap:
                "mask": show pixel mask in the envmap,
                "normal+uv": returns (crop, u, v), where (u,v) are the coordinates
                             of the crop."""
+
+        self.validate()
 
         coords = self._cameraCoordinates(vfov, rotation_matrix, ar,
                                          resolution, projection, mode)
@@ -560,21 +567,7 @@ def rotation_matrix(azimuth, elevation, roll=0):
 
 
 def downscaleEnvmap(nenvmap, sao, sat, times):
-    """Energy-preserving environment map downscaling by factors of 2.
-    Usage:
-    sao = EnvironmentMap(512, 'LatLong').solidAngles() # Source envmap solid angles, could be replaced by `sao = envmap.soldAngles()`
-    sat = EnvironmentMap(128, 'LatLong').solidAngles() # Target envmap solid angles
-    downscaleEnvmap(envmap, sao, sat, 3)
-    Note : `times` is the number of downscales, so the total downscaling factor is 2**times"""
-    nenvmap.data *= sao[:, :, np.newaxis]
-    nenvmap.data = np.pad(nenvmap.data, [(0, 1), (0, 1), (0, 0)], 'constant')
-    sx = np.cumsum(nenvmap.data, axis=1)
-    tmp = sx[:, 2**times::2**times, ...] - sx[:, :-2**times:2**times, ...]
-    sy = np.cumsum(tmp, axis=0)
-    nenvmap.data = sy[2**times::2**times, :, ...] - sy[:-2**times:2**times, :, ...]
-    if nenvmap.data.shape[1] > 2*nenvmap.data.shape[0]:
-        nenvmap.data[:, -2, :] += nenvmap[:, -1, :]
-        nenvmap.data = nenvmap.data[:, :-1, :]
-    nenvmap.data /= sat[:, :, np.newaxis]
-    nenvmap.data = np.ascontiguousarray(nenvmap.data)
-    return nenvmap
+    """Deprecated"""
+    print("This function is deprecated and will be removed in an ulterior version of skylibs.")
+    sz = sat.shape[0]
+    return nenvmap.resize(sz)
