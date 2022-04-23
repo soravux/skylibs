@@ -221,6 +221,8 @@ class EnvironmentMap:
 
     def interpolate(self, u, v, valid=None, order=1, filter=True):
         """"Interpolate to get the desired pixel values."""
+        u = u.copy()
+        v = v.copy()
         
         # Repeat the first and last rows/columns for interpolation purposes
         h, w, d = self.data.shape
@@ -233,8 +235,8 @@ class EnvironmentMap:
         source[1:-1,-1] = self.data[:,-1]
 
         # To avoid displacement due to the padding
-        u += 1./self.data.shape[1]
-        v += 1./self.data.shape[0]
+        u += 0.5/self.data.shape[1]
+        v += 0.5/self.data.shape[0]
         target = np.vstack((v.flatten()*self.data.shape[0], u.flatten()*self.data.shape[1]))
 
         data = np.zeros((u.shape[0], u.shape[1], d))
@@ -242,8 +244,6 @@ class EnvironmentMap:
             map_coordinates(source[:,:,c], target, output=data[:,:,c].reshape(-1), cval=np.nan, order=order, prefilter=filter)
         self.data = data
 
-        # In original: valid &= ~isnan(data)...
-        # I haven't included it here because it may mask potential problems...
         if valid is not None:
             self.setBackgroundColor(self.backgroundColor, valid)
 
