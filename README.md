@@ -55,21 +55,21 @@ Available methods:
 - `.copy()`: Deepcopy the instance.
 - `.solidAngles()`: Computes the per-pixel solid angles of the current representation.
 - `.convertTo(targetFormat)`: Convert to the `targetFormat`.
-- `.rotate(format, rotation)`: Rotate the environment map using format DCM. Soon will support Euler Angles, Euler Vector and Quaternions.
-- `.resize(targetSize)`: Resize the environment map. Be cautious, this function does not ensure energy is preserved!
+- `.rotate(format, rotation)`: Rotate the environment map using format DCM.
+- `.resize(targetSize)`: Resize the environment map. Down-scaling will use energy-preserving interpolation (best results with integer downscales), which may introduce aliasing.
 - `.toIntensity()`: Convert to grayscale.
 - `.getMeanLightVectors(normals)`: Compute the mean light vector of the environment map for the given normals.
-- `.project(self, vfov, rotation_matrix, ar=4./3., resolution=(640, 480), projection="perspective", mode="normal")`: Extract a rectified image from the panorama. See [the code](https://github.com/soravux/skylibs/blob/master/envmap/environmentmap.py#L402) for details.
+- `.project(self, vfov, rotation_matrix, ar=4./3., resolution=(640, 480), projection="perspective", mode="normal")`: Extract a rectified image from the panorama.
 
 Internal functions:
 - `.imageCoordinates()`: returns the (u, v) coordinates at teach pixel center.
 - `.worldCoordinates()`: returns the (x, y, z) world coordinates for each pixel center.
-- `.interpolate(u, v, valid, method='linear')`: interpolates
+- `.interpolate(u, v, valid)`: interpolates the envmap to coordinates (u, v) masked with valid.
 
 
 ### Projection, cropping, simulating a camera
 
-To perform a crop from a `pano.jpg`:
+To perform a crop from `pano.jpg`:
 
 ```
 import numpy as np
