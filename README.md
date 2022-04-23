@@ -134,6 +134,8 @@ Tonemapping using `pfstools`.
 
 ## Changelog
 
+0.6.8: Fixed resizing to be energy-preserving when downscaling; fixed conversion that shifted the envmap by half a pixel
+0.6.7: Fixed image envmap embedding to fit the projection coordinates; fixed crash in imwrite with specific channel names
 0.6.6: Fixed aspect ratio when embedding
 0.6.5: Added envmap embed feature
 0.6.4: Removed `pyshtools` as mandatory dependency
@@ -146,9 +148,6 @@ Tonemapping using `pfstools`.
 ## Roadmap
 
 - Improved display for environment maps (change intensity with keystroke/button)
-- Standalone `ezexr` on all platforms
+- Standalone `ezexr` on all platforms (investigate `pyexr`)
 - add `worldCoordinates()` output in spherical coordinates instead of (x, y, z)
 - Add assert that data is float32 in convertTo/resize (internal bugs in scipy interpolation)
-- bugfix: `.rotate()` not working on grayscale (2D) data (current fix: make the array 3D with 1 channel)
-- bugfix: `.convertTo()` not working on grayscale (2D) data (current fix: make the array 3D with 1 channel)
-
