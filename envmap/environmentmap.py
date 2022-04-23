@@ -229,7 +229,6 @@ class EnvironmentMap:
 
     def interpolate(self, u, v, valid=None, order=1, filter=True):
         """"Interpolate to get the desired pixel values."""
-        self.validate()
         
         # Repeat the first and last rows/columns for interpolation purposes
         h, w, d = self.data.shape
@@ -258,15 +257,17 @@ class EnvironmentMap:
 
         return self
 
-    def setBackgroundColor(self, color, valid):
+    def setBackgroundColor(self, color, valid=None):
         """Sets the area defined by ~valid to color."""
+        if valid is None:
+            _, _, _, valid = self.worldCoordinates()
+
         assert valid.dtype == 'bool', "`valid` must be a boolean array."
         assert valid.shape[:2] == self.data.shape[:2], "`valid` must be the same size as the EnvironmentMap."
 
         self.backgroundColor = np.asarray(color)
 
-        for c in range(self.data.shape[2]):
-            self.data[:,:,c][np.invert(valid)] = self.backgroundColor[c]
+        self.data[np.tile(np.invert(valid)[:,:,None], (1, 1, self.data.shape[2]))] = self.backgroundColor
 
         return self
 
@@ -337,7 +338,7 @@ class EnvironmentMap:
             elif self.format_ == 'skylatlong':
                 targetSize = (targetSize, 4*targetSize)
             elif self.format_ == 'cube':
-                targetSize = (targetSize, 3/4*targetSize)
+                targetSize = (targetSize, round(3/4*targetSize))
             else:
                 targetSize = (targetSize, targetSize)
         
@@ -345,18 +346,19 @@ class EnvironmentMap:
         if targetSize[0] < self.data.shape[0]:
 
             if debug == True:
-                old_data = self.data.copy()
+                old_mean = self.data.mean()
 
             # check if integer
             if (Decimal(self.data.shape[0]) / Decimal(targetSize[0])) % 1 == 0:
-                print("integer resize")
+                if debug is True:
+                    print("integer resize")
                 fac = self.data.shape[0] // targetSize[0]
                 self.data = downscale_local_mean(self.data, (fac, fac, 1))
             else:    
                 self.data = resize_local_mean(self.data, targetSize, grid_mode=True, preserve_range=True)
 
             if debug == True:
-                print("Energy difference: {:.01f}".format(self.data.sum()/old_data.sum() - 1.))
+                print("Energy difference in resize: {:.04f}".format(self.data.mean()/old_mean - 1.))
 
             return self
         
