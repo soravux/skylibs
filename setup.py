@@ -1,4 +1,11 @@
+from pathlib import Path
 from setuptools import setup
+
+
+skylibs_module = {}
+root = Path(__file__).resolve().parent
+with open(str(root / "skylibs/__init__.py")) as fhdl:
+    exec(fhdl.read(), skylibs_module)
 
 
 setup(
@@ -8,8 +15,8 @@ setup(
     author_email='yannickhold@gmail.com',
     license="LGPLv3",
     url='https://github.com/soravux/skylibs',
-    version='0.6.8',
-    packages=['ezexr', 'envmap', 'hdrio', 'hdrtools', 'hdrtools/tonemapping', 'skydb', 'tools3d'],
+    version=skylibs_module['__version__'],
+    packages=['ezexr', 'envmap', 'hdrio', 'hdrtools', 'hdrtools/tonemapping', 'skydb', 'tools3d', 'skylibs'],
     include_package_data=True,
-    install_requires=['imageio>=1.6', 'tqdm', 'numpy', 'scipy', 'scikit-image'],
+    install_requires=['imageio>=1.6', 'tqdm', 'numpy', 'scipy', 'scikit-image>=0.19'],
 )

@@ -3,8 +3,7 @@ import subprocess
 
 import numpy as np
 import imageio
-
-__version__ = "0.6.2"
+from skylibs import __version__
 
 
 try:

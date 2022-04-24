@@ -1,4 +1,3 @@
 from .environmentmap import EnvironmentMap, rotation_matrix, downscaleEnvmap
 from . import projections
-
-__version__ = "0.6.8"
+from skylibs import __version__
