@@ -85,7 +85,8 @@ class EnvironmentMap:
                 self.data = self.data.copy()
         else:
             raise Exception('Could not understand input. Please provide a '
-                            'filename, a single size (height) or an image.')
+                            'filename (str), an height (integer) or an image '
+                            '(np.ndarray).')
 
         self.backgroundColor = np.zeros(self.data.shape[-1])
         self.validate()
@@ -369,23 +370,44 @@ class EnvironmentMap:
         self.data = zoom(self.data, _size, order=order)
         return self
 
-    def toIntensity(self):
+    def toIntensity(self, mode="ITU BT.709", colorspace="linear"):
         """
-        Returns intensity-version of the environment map.
-        This function assumes the CCIR 601 standard to perform intensity (Luminance) conversion.
+        Converts the environment map to grayscale.
+
+        `mode` can be either :
+               "ITU BT.601" (luma in sRGB),
+               "ITU BT.709" (assumes the envmap is linear),
+               mean (mean of the channels)
+        `colorspace`: either "sRGB" or "linear"
         """
         self.validate()
 
         if self.data.shape[2] != 3:
-            print("Envmap doesn't have 3 channels. This function won't do anything.")
-        else:
-            self.data = 0.299 * self.data[...,0] + 0.587 * self.data[...,1] + 0.114 * self.data[...,2]
+            print("Envmap does not have 3 channels. This function won't do anything.")
+            return self
+        
+        if colorspace.lower() == "sRGB":
+            if self.data.max() > 1.:
+                raise Exception("Error during sRGB to linear conversion: data is > 1. Please linearize "
+                                "the data beforehand or normalize it [0, 1].")
+            self.data = self.data**2.2
+
+        if mode == "ITU BT.601":
+            self.data = 0.299*self.data[...,0] + 0.587*self.data[...,1] + 0.114*self.data[...,2]
             self.data = self.data[:,:,np.newaxis]
+        elif mode == "ITU BT.709":
+            self.data = 0.2126*self.data[...,0] + 0.7152*self.data[...,1] + 0.0722*self.data[...,2]
+            self.data = self.data[:,:,np.newaxis]
+        elif mode == "mean":
+            self.data = np.mean(self.data, axis=2, keepdims=True)
+
+        if colorspace.lower() == "sRGB":
+            self.data = self.data**(1./2.2)
+
         return self
 
     def setHemisphereAlbedo(self, normal, value):
-        """Sets an whole hemisphere defined by `normal` to a given `value`.
-        Useful to set the ground albedo."""
+        """Sets an whole hemisphere defined by `normal` to a given `value`."""
         raise NotImplementedError()
 
     def getMeanLightVectors(self, normals):

@@ -61,7 +61,8 @@ def imread(filename, format_="float32"):
     if format_ == "native":
         return im
     elif ldr and not 'int' in format_:
-        return im.astype(format_) / 255.
+        ii = np.iinfo(im.dtype)
+        return im.astype(format_) / ii.max
     else:
         return im.astype(format_)
 

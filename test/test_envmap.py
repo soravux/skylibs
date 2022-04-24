@@ -13,10 +13,18 @@ np.random.seed(31415926)
 # pytest [-s] [-k test_convert]
 
 
+def get_envmap(sz, up_factor, format_, channels=3):
+    e = EnvironmentMap(sz, format_, channels=channels)
+    e.data = np.random.rand(e.data.shape[0], e.data.shape[1], channels)
+    if up_factor != 1.:
+        e.data = resize(e.data, [up_factor*x for x in e.data.shape[:2]])
+    e.setBackgroundColor(0.)
+    return e
+
+
 @pytest.mark.parametrize("envmap_type,in_sz,out_sz", product(SUPPORTED_FORMATS, [512, 431, 271], [512, 431, 271]))
 def test_resize_integer(envmap_type, in_sz, out_sz):
-    e = EnvironmentMap(in_sz, envmap_type)
-    e.data = np.random.rand(*e.data.shape)
+    e = get_envmap(in_sz, 1, envmap_type, 1)
     old_energy = e.data.mean()
     e = e.copy().resize(out_sz, debug=True)
     new_energy = e.data.mean()
@@ -26,10 +34,7 @@ def test_resize_integer(envmap_type, in_sz, out_sz):
 
 @pytest.mark.parametrize("src_format,tgt_format", product(SUPPORTED_FORMATS, SUPPORTED_FORMATS))
 def test_convert(src_format, tgt_format):
-    e_src = EnvironmentMap(16, src_format)
-    img = np.random.rand(*e_src.data.shape)
-    e_src.data = resize(img, (6*img.shape[0], 6*img.shape[1]))
-    e_src.setBackgroundColor(0.)
+    e_src = get_envmap(16, 6, src_format)
 
     # remove everything not in the sky if src or tgt format is sky-only
     if src_format[:3] == "sky" or tgt_format[:3] == "sky":
@@ -55,10 +60,7 @@ def test_convert(src_format, tgt_format):
 
 @pytest.mark.parametrize("format_", SUPPORTED_FORMATS)
 def test_convert_self(format_):
-    e_src = EnvironmentMap(16, format_)
-    img = np.random.rand(*e_src.data.shape)
-    e_src.data = resize(img, (6*img.shape[0], 6*img.shape[1]))
-    e_src.setBackgroundColor(0.)
+    e_src = get_envmap(16, 6, format_)
 
     e_tgt = e_src.copy().convertTo(format_)
     #from matplotlib import pyplot as plt
@@ -68,10 +70,7 @@ def test_convert_self(format_):
 
 @pytest.mark.parametrize("format_", SUPPORTED_FORMATS)
 def test_project_embed(format_):
-    e = EnvironmentMap(16, format_)
-    e.data = np.random.rand(e.data.shape[0], e.data.shape[1], 1)
-    e.data = resize(e.data, [6*x for x in e.data.shape[:2]])
-    e.setBackgroundColor(0.)
+    e = get_envmap(16, 6, format_)
 
     dcm = rotation_matrix(azimuth=0./180*np.pi,
                         elevation=-45./180*np.pi,
@@ -117,3 +116,11 @@ def test_project_embed(format_):
     # plt.subplot(133); plt.imshow(np.abs(recovered - source)); plt.colorbar()
     # plt.show()
     assert np.max(np.abs(recovered - source)) < 0.15
+
+
+@pytest.mark.parametrize("format_,mode,colorspace", product(SUPPORTED_FORMATS, ["ITU BT.601", "ITU BT.709", "mean"], ["sRGB", "linear"]))
+def test_intensity(format_, mode, colorspace):
+    e = get_envmap(16, 6, format_, channels=3)
+    e.toIntensity(mode=mode, colorspace=colorspace)
+
+    assert e.data.shape[2] == 1
