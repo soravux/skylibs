@@ -26,10 +26,11 @@ def get_envmap(sz, up_factor, format_, channels=3):
 def test_resize_integer(envmap_type, in_sz, out_sz):
     e = get_envmap(in_sz, 1, envmap_type, 1)
     old_energy = e.data.mean()
+    old = e.data.copy()
     e = e.copy().resize(out_sz, debug=True)
     new_energy = e.data.mean()
-    print("Energy difference: {:.04f}".format(np.abs(new_energy/old_energy - 1.)))
-    assert np.abs(new_energy/old_energy - 1.) < 1e-3
+    print("Energy difference: {:g}".format(np.abs(new_energy/old_energy - 1.)))
+    assert np.abs(new_energy/old_energy - 1.) < 5e-3
 
 
 @pytest.mark.parametrize("src_format,tgt_format", product(SUPPORTED_FORMATS, SUPPORTED_FORMATS))
@@ -124,3 +125,45 @@ def test_intensity(format_, mode, colorspace):
     e.toIntensity(mode=mode, colorspace=colorspace)
 
     assert e.data.shape[2] == 1
+
+@pytest.mark.parametrize("format_,normal,channels", product(SUPPORTED_FORMATS, [[0, 1, 0], [1, 0, 0], [0, 0, -1], [0.707, 0.707, 0], "rand"], [1, 3, 5, -3]))
+def test_set_hemisphere(format_, normal, channels):
+    if channels < 0:
+        value = np.asarray(np.random.rand())
+        channels = np.abs(channels)
+    else:
+        value = np.random.rand(channels)
+
+    if normal == "rand":
+        normal = np.random.rand(3) + 1e-4
+        normal /= np.linalg.norm(normal)
+    else:
+        normal = np.asarray(normal, dtype=np.float32)
+
+    e = EnvironmentMap(128, format_, channels=channels)
+    e.setHemisphereValue(normal, value)
+
+    if value.size != e.data.shape[2]:
+        value = np.tile(value, (e.data.shape[2],))
+
+    u, v = e.world2image(normal[0:1], normal[1:2], normal[2:3])
+    h, w = np.floor(v*e.data.shape[0]).astype('int16'), np.floor(u*e.data.shape[1]).astype('int16')
+    h, w = np.minimum(h, e.data.shape[0] - 1), np.minimum(w, e.data.shape[1] - 1)
+    assert np.all(e.data[h, w, :].squeeze().tolist() == value.squeeze().tolist()) , "normal not set"
+
+    # skip sky-* envmaps as they might not represent the opposite normal
+    if "sky" in format_:
+        return
+
+    u, v = e.world2image(-normal[0:1], -normal[1:2], -normal[2:3])
+    h, w = np.floor(v*e.data.shape[0]).astype('int16'), np.floor(u*e.data.shape[1]).astype('int16')
+    h, w = np.minimum(h, e.data.shape[0] - 1), np.minimum(w, e.data.shape[1] - 1)
+
+    # try:
+    assert np.sum(np.abs(e.data[h, w, :])) == 0. , "opposite normal not zeros"
+    # except:
+    #     print(format_)
+    #     from matplotlib import pyplot as plt
+    #     plt.imshow(e.data)
+    #     plt.show()
+    #     import pdb; pdb.set_trace()

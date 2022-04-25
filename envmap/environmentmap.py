@@ -406,9 +406,26 @@ class EnvironmentMap:
 
         return self
 
-    def setHemisphereAlbedo(self, normal, value):
+    def setHemisphereValue(self, normal, value):
         """Sets an whole hemisphere defined by `normal` to a given `value`."""
-        raise NotImplementedError()
+        normal = np.asarray(normal).reshape((-1))
+        assert normal.size == 3, "unknown normal shape, should have 3 elements"
+        normal /= np.linalg.norm(normal)
+
+        x, y, z, _ = self.worldCoordinates()
+        xyz = np.dstack((x, y, z))
+
+        value = np.asarray(value)
+        assert value.size in (self.data.shape[2], 1), ("Cannot understand value: should "
+            "be size 1 or channels ({})".format(self.data.shape[2]))
+
+        if value.size == 1 and self.data.shape[2] != value.size:
+            value = np.tile(value, (self.data.shape[2],))
+
+        mask = xyz.dot(normal) > 0
+        self.data[np.tile(mask[:,:,None], (1, 1, self.data.shape[2]))] = np.tile(value, (mask.sum(),))
+
+        return self
 
     def getMeanLightVectors(self, normals):
         """Compute the mean light vector of the environment map for the normals given.
@@ -418,12 +435,11 @@ class EnvironmentMap:
         self.validate()
 
         normals = np.asarray(normals)
+        normals /= np.linalg.norm(normals, 1)
         solidAngles = self.solidAngles()
         solidAngles /= np.nansum(solidAngles) # Normalize to 1
-        normals /= np.linalg.norm(normals, 1)
 
         x, y, z, _ = self.worldCoordinates()
-
         xyz = np.dstack((x, y, z))
 
         visibility = xyz.dot(normals) > 0
