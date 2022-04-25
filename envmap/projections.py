@@ -1,8 +1,6 @@
 import numpy as np
 from numpy import logical_and as land, logical_or as lor
 
-eps = 2**-52
-
 
 def world2latlong(x, y, z):
     """Get the (u, v) coordinates of the point defined by (x, y, z) for
@@ -28,10 +26,24 @@ def world2angular(x, y, z):
     """Get the (u, v) coordinates of the point defined by (x, y, z) for
     an angular map."""
     # world -> angular
-    denum = (2 * np.pi * np.sqrt(x**2 + y**2)) + eps
+
+    # take advantage of the division by zero handling of numpy
+    x, y, z = np.asarray(x), np.asarray(y), np.asarray(z)
+
+    denum = (2 * np.pi * np.sqrt(x**2 + y**2))
     rAngular = np.arccos(-z) / denum
-    v = 1. / 2 - rAngular * y
-    u = 1. / 2 + rAngular * x
+    v = 0.5 - rAngular * y
+    u = 0.5 + rAngular * x
+    
+    u[~np.isfinite(rAngular)] = 0.5
+    # handle [0, 0, -1]
+    v[np.isnan(rAngular)] = 0.5
+    # handle [0, 0, 1]
+    v[np.isinf(rAngular)] = 0.
+
+    if u.size == 1:
+        return u.item(), v.item()
+
     return u, v
 
 
@@ -140,11 +152,24 @@ def sphere2world(u, v):
 
 def world2sphere(x, y, z):
     # world -> sphere
-    denum = (2 * np.sqrt(x**2 + y**2)) + eps
+
+    # take advantage of the division by zero handling of numpy
+    x, y, z = np.asarray(x), np.asarray(y), np.asarray(z)
+    
+    denum = (2 * np.sqrt(x**2 + y**2))
     r = np.sin(.5 * np.arccos(-z)) / denum
 
     u = .5 + r * x
     v = .5 - r * y
+
+    u[~np.isfinite(r)] = 0.5
+    # handle [0, 0, -1]
+    v[np.isnan(r)] = 0.5
+    # handle [0, 0, 1]
+    v[np.isinf(r)] = 0.
+
+    if u.size == 1:
+        return u.item(), v.item()
 
     return u, v
 
