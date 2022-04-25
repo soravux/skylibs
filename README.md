@@ -134,15 +134,15 @@ Tonemapping using `pfstools`.
 
 ## Changelog
 
-0.6.8: Fixed resizing to be energy-preserving when downscaling; fixed conversion that shifted the envmap by half a pixel
-0.6.7: Fixed image envmap embedding to fit the projection coordinates; fixed crash in imwrite with specific channel names
-0.6.6: Fixed aspect ratio when embedding
-0.6.5: Added envmap embed feature
-0.6.4: Removed `pyshtools` as mandatory dependency
-0.6.3: Removed custom OpenEXR bindings (can be easily installed using conda)
-0.6.2: Removed `rotlib` dependency
-0.6.1: Aspect ratio in `project()` now in pixels
-0.6: Updated the transport matrix Blender plugin to 2.8+
+- 0.6.8: Fixed resizing to be energy-preserving when downscaling; fixed conversion that shifted the envmap by half a pixel
+- 0.6.7: Fixed image envmap embedding to fit the projection coordinates; fixed crash in imwrite with specific channel names
+- 0.6.6: Fixed aspect ratio when embedding
+- 0.6.5: Added envmap embed feature
+- 0.6.4: Removed `pyshtools` as mandatory dependency
+- 0.6.3: Removed custom OpenEXR bindings (can be easily installed using conda)
+- 0.6.2: Removed `rotlib` dependency
+- 0.6.1: Aspect ratio in `project()` now in pixels
+- 0.6: Updated the transport matrix Blender plugin to 2.8+
 
 
 ## Roadmap
