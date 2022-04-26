@@ -1,4 +1,5 @@
 import os
+import pathlib
 from copy import deepcopy
 from decimal import Decimal
 
@@ -37,23 +38,26 @@ GROUND_ALBEDOS = {
 }
 
 
+def isPath(var):
+    return isinstance(var, str) or isinstance(var, pathlib.PurePath)
+
+
 class EnvironmentMap:
     def __init__(self, im, format_=None, copy=True, channels=3):
         """
         Creates an EnvironmentMap.
 
-        :param im: Image path or data to be converted to an EnvironmentMap, or 
-                   the height of an empty EnvironmentMap.
-        :param format_: EnvironmentMap format. Can be `Angular`, ...
+        :param im: Image path (str, pathlib.Path) or data (np.ndarray) representing 
+                   an EnvironmentMap, or the height (int) of an empty EnvironmentMap.
+        :param format_: EnvironmentMap format. Can be any from SUPPORTED_FORMATS.
         :param copy: When a numpy array is given, should it be copied.
-        :param color: When providing an integer, create an empty color or
-                      grayscale EnvironmentMap.
-        :type im: float, numpy array
-        :type format_: string
+        :param channels: Number of channels (e.g., 1=grayscale, 3=color).
+        :type im: str, Path, int, np.ndarray
+        :type format_: str
         :type copy: bool
         """
-        if not format_ and isinstance(im, str):
-            filename = os.path.splitext(im)[0]
+        if not format_ and isPath(im):
+            filename = os.path.splitext(str(im))[0]
             metadata = EnvmapXMLParser("{}.meta.xml".format(filename))
             format_ = metadata.getFormat()
 
@@ -64,9 +68,9 @@ class EnvironmentMap:
 
         self.format_ = format_.lower()
 
-        if isinstance(im, str):
+        if isPath(im):
             # We received the filename
-            self.data = imread(im)
+            self.data = imread(str(im))
         elif isinstance(im, int):
             # We received a single scalar
             if self.format_ == 'latlong':
@@ -406,14 +410,28 @@ class EnvironmentMap:
 
         return self
 
-    def setHemisphereValue(self, normal, value):
-        """Sets an whole hemisphere defined by `normal` to a given `value`."""
-        normal = np.asarray(normal).reshape((-1))
+    def getHemisphere(self, normal, channels=True):
+        """
+        
+        normal: 
+        """
+        normal = np.asarray(normal, dtype=np.float32).reshape((-1))
         assert normal.size == 3, "unknown normal shape, should have 3 elements"
         normal /= np.linalg.norm(normal)
 
         x, y, z, _ = self.worldCoordinates()
         xyz = np.dstack((x, y, z))
+
+        mask = xyz.dot(normal) > 0
+        if channels == False:
+            return mask
+        
+        return np.tile(mask[:,:,None], (1, 1, self.data.shape[2]))
+
+    def setHemisphereValue(self, normal, value):
+        """Sets an whole hemisphere defined by `normal` to a given `value`."""
+
+        mask = self.getHemisphere(normal, channels=True)
 
         value = np.asarray(value)
         assert value.size in (self.data.shape[2], 1), ("Cannot understand value: should "
@@ -422,8 +440,7 @@ class EnvironmentMap:
         if value.size == 1 and self.data.shape[2] != value.size:
             value = np.tile(value, (self.data.shape[2],))
 
-        mask = xyz.dot(normal) > 0
-        self.data[np.tile(mask[:,:,None], (1, 1, self.data.shape[2]))] = np.tile(value, (mask.sum(),))
+        self.data[mask] = np.tile(value, (mask.sum()//self.data.shape[2],))
 
         return self
 
