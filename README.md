@@ -50,20 +50,30 @@ e_angular_sa = e_angular.solidAngles()
 - skyangular
 - skylatlong
 
-Available methods:
+#### Coordinates system
 
-- `.copy()`: Deepcopy the instance.
-- `.solidAngles()`: Computes the per-pixel solid angles of the current representation.
-- `.convertTo(targetFormat)`: Convert to the `targetFormat`.
-- `.rotate(format, rotation)`: Rotate the environment map using format DCM.
-- `.resize(targetSize)`: Resize the environment map. Down-scaling will use energy-preserving interpolation (best results with integer downscales), which may introduce aliasing.
-- `.toIntensity()`: Convert to grayscale.
-- `.getMeanLightVectors(normals)`: Compute the mean light vector of the environment map for the given normals.
-- `.project(self, vfov, rotation_matrix, ar=4./3., resolution=(640, 480), projection="perspective", mode="normal")`: Extract a rectified image from the panorama.
+Skylibs employs the following right-handed coordinates system: +X = right, +Y = up, +z = towards the camera. Here is its latitude-longitude map (see code below):
 
-Internal functions:
-- `.imageCoordinates()`: returns the (u, v) coordinates at teach pixel center.
-- `.worldCoordinates()`: returns the (x, y, z) world coordinates for each pixel center.
+![latlong coordinates system](coordinates.png "LatLong Format Coordinates System")
+
+
+#### Available methods:
+
+- `.copy()`: deepcopy the instance.
+- `.solidAngles()`: provides the solid angle for each pixel of the current representation.
+- `.convertTo(targetFormat)`: convert to the `targetFormat`.
+- `.rotate(rotation)`: rotate the environment map using a Direction Cosine Matrix (DCM).
+- `.resize(targetHeight)`: resize the environment map. Down-scaling will use energy-preserving interpolation (best results with integer downscales), which may introduce aliasing.
+- `.toIntensity(mode, colorspace)`: convert to grayscale.
+- `.getHemisphere(normal)`: returns a mask of the hemisphere visible from a surface with `normal`.
+- `.setHemisphereValue(normal, value)`: sets all pixels visible from a surface with `normal` to `value`.
+- `.getMeanLightVectors(normals)`: compute the mean light vector of the environment map for the given normals.
+- `.project(vfov, rotation_matrix, ar, resolution, projection, mode)`: Extract a rectified image from the panorama, simulating a camera with field-of-view `vfov`, extrinsics `rotation_matrix`, aspect ratio `ar`, `resolution`.
+- `.embed(self, vfov, rotation_matrix, image)`: inverse of `project`, embeds an image in the environment map.
+- `.imageCoordinates()`: returns the (u, v) coordinates at each pixel center.
+- `.worldCoordinates()`: returns the (x, y, z, valid) world coordinates for each pixel center, with mask `valid` (anything outside this mask does not project to the world).
+- `.world2image(x, y, z)`: returns the (u, v) coordinates of the vector (x, y, z).
+- `.image2world(u, v)`: returns the (x, y, z) coordinates of the coordinates (u, v).
 - `.interpolate(u, v, valid)`: interpolates the envmap to coordinates (u, v) masked with valid.
 
 
@@ -100,12 +110,12 @@ imsave("crop.jpg", crop, quality=90)
 - exr (ezexr)
 - cr2, nef, raw (dcraw)
 - hdr, pic (custom, beta)
-- tiff (tifffile or scipy)
-- All the formats supported by `scipy.io`
+- tiff (tifffile)
+- All the formats supported by `imageio`
 
 ### ezexr
 
-Internal exr reader and writer.
+Internal exr reader and writer, relies on `python-openexr`.
 
 ### tools3d
 
@@ -134,6 +144,7 @@ Tonemapping using `pfstools`.
 
 ## Changelog
 
+- 0.7.0: Fixed `.setHemisphereValue()`, added mode to `.toIntensity()`, fixed angular and sphere projections for normals [0, 0, ±1], added `.getHemisphere(normal)`.
 - 0.6.8: Fixed resizing to be energy-preserving when downscaling; fixed conversion that shifted the envmap by half a pixel
 - 0.6.7: Fixed image envmap embedding to fit the projection coordinates; fixed crash in imwrite with specific channel names
 - 0.6.6: Fixed aspect ratio when embedding
@@ -151,3 +162,37 @@ Tonemapping using `pfstools`.
 - Standalone `ezexr` on all platforms (investigate `pyexr`)
 - add `worldCoordinates()` output in spherical coordinates instead of (x, y, z)
 - Add assert that data is float32 in convertTo/resize (internal bugs in scipy interpolation)
+
+
+### Code for the coordinates system figure
+
+```
+import numpy as np
+from matplotlib import pyplot as plt
+from envmap import EnvironmentMap
+
+sz = 1024
+e = EnvironmentMap(sz, 'cube', channels=3)
+e.data[:sz//4,:,:] = [0, 1, 0]                   # +Y
+e.data[sz//4:int(0.5*sz),:,:] = [1, 0, 1]        # -Y
+e.data[:,int(0.5*sz):,:] = [1, 0, 0]             # +X
+e.data[:,:int(0.25*sz),:] = [0, 1, 1]            # -X
+e.data[int(3/4*sz):,:,:] = [0, 0, 1]             # +Z
+e.data[int(0.5*sz):int(3/4*sz):,:,:] = [1, 1, 0] # -Z
+e.convertTo('latlong')
+
+def getCoords(normal):
+    u, v = e.world2image(*normal)
+    return [u*e.data.shape[1], v*e.data.shape[0]]
+
+plt.imshow(e.data)
+plt.text(*(getCoords([1, 0, 0]) + ["+X"]))
+plt.text(*(getCoords([-1, 0, 0]) + ["-X"]))
+plt.text(*(getCoords([0, 1, 0]) + ["+Y"]))
+plt.text(*(getCoords([0, -1, 0]) + ["-Y"]))
+plt.text(*(getCoords([0, 0, 1]) + ["+Z"]))
+plt.text(*(getCoords([0, 0, -1]) + ["-Z"]))
+plt.axis('off')
+plt.savefig('coordinates.png', bbox_inches="tight", dpi=200)
+plt.show()
+```
