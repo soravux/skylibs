@@ -167,3 +167,31 @@ def test_set_hemisphere(format_, normal, channels):
     #     plt.imshow(e.data)
     #     plt.show()
     #     import pdb; pdb.set_trace()
+
+
+@pytest.mark.parametrize("format_,normal", product(SUPPORTED_FORMATS, [[0, 1, 0], [1, 0, 0], [0, 0, -1], [0.707, 0.707, 0], "rand"]))
+def test_worldCoordinates_list(format_, normal):
+    e = EnvironmentMap(128, format_)
+    if normal == "rand":
+        normal = np.random.rand(3) + 1e-4
+        normal /= np.linalg.norm(normal)
+
+    u, v = e.world2image(*normal)
+
+
+@pytest.mark.parametrize("format_,normal", product(SUPPORTED_FORMATS, [[0, 1, 0],
+                                                                       [1, 0, 0],
+                                                                       [0, 0, -1],
+                                                                       [0.707, 0.707, 0],
+                                                                       [[0.707, 0],
+                                                                        [0.707, 0],
+                                                                        [0, -1]],
+                                                                       "rand"]))
+def test_worldCoordinates_ndarray(format_, normal):
+    e = EnvironmentMap(128, format_)
+    if normal == "rand":
+        normal = np.random.rand(3) + 1e-4
+        normal /= np.linalg.norm(normal)
+
+    normal = np.asarray(normal)
+    u, v = e.world2image(*normal)
