@@ -32,8 +32,8 @@ def world2angular(x, y, z):
 
     denum = (2 * np.pi * np.sqrt(x**2 + y**2))
     rAngular = np.arccos(-z) / denum
-    v = 0.5 - rAngular * y
-    u = 0.5 + rAngular * x
+    v = np.atleast_1d(0.5 - rAngular * y)
+    u = np.atleast_1d(0.5 + rAngular * x)
     
     u[~np.isfinite(rAngular)] = 0.5
     # handle [0, 0, -1]
@@ -159,8 +159,8 @@ def world2sphere(x, y, z):
     denum = (2 * np.sqrt(x**2 + y**2))
     r = np.sin(.5 * np.arccos(-z)) / denum
 
-    u = .5 + r * x
-    v = .5 - r * y
+    u = np.atleast_1d(.5 + r * x)
+    v = np.atleast_1d(.5 - r * y)
 
     u[~np.isfinite(r)] = 0.5
     # handle [0, 0, -1]
@@ -176,6 +176,9 @@ def world2sphere(x, y, z):
 
 def world2cube(x, y, z):
     # world -> cube
+    x = np.atleast_1d(np.asarray(x))
+    y = np.atleast_1d(np.asarray(y))
+    z = np.atleast_1d(np.asarray(z))
     u = np.zeros(x.shape)
     v = np.zeros(x.shape)
 
@@ -214,8 +217,8 @@ def world2cube(x, y, z):
     v[indRight] = 1.5 - 0.5 * y[indRight] / x[indRight]
 
     # bring back in the [0,1] intervals
-    u = u / 3
-    v = v / 4
+    u = u / 3.
+    v = v / 4.
     return u, v
 
 
