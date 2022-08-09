@@ -1,8 +1,8 @@
 bl_info = {
     "name": "Generate Transport Matrix",
     "author": "Yannick Hold-Geoffroy",
-    "version": (0, 2, 0),
-    "blender": (2, 92, 0),
+    "version": (0, 2, 1),
+    "blender": (3, 0, 1),
     "category": "Import-Export",
     "location": "File > Export > Generate Transport Matrix",
     "description": "Export the current camera viewport to a transport matrix.",
@@ -98,12 +98,12 @@ class GenerateTransportMatrix(bpy.types.Operator):
     bl_label = "Generate Transport Matrix"
     bl_options = {'REGISTER'}
 
-    filepath = bpy.props.StringProperty(default="scene.msgpack", subtype="FILE_PATH")
-    envmap_type = bpy.props.EnumProperty(name="Environment Map Type",
+    filepath : bpy.props.StringProperty(default="scene.msgpack", subtype="FILE_PATH")
+    envmap_type : bpy.props.EnumProperty(name="Environment Map Type",
                                          items=[("SKYLATLONG", "skylatlong", "width should be 4x the height", "", 1),
                                                 ("LATLONG", "latlong", "width should be 2x the height", "", 2)])
-    envmap_height = bpy.props.IntProperty(name="Environment Map Height (px)", default=64)
-    only_surface_normals = bpy.props.BoolProperty(name="Output only surface normals", default=False)
+    envmap_height : bpy.props.IntProperty(name="Environment Map Height (px)", default=64)
+    only_surface_normals : bpy.props.BoolProperty(name="Output only surface normals", default=False)
 
     def execute(self, context):
 
