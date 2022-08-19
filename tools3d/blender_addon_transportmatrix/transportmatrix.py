@@ -81,7 +81,7 @@ def getEnvmapDirections(envmap_size, envmap_type):
     cols = cols[1::2]
     rows = rows[1::2]
 
-    u, v = [d.astype('float32') for d in np.meshgrid(cols, rows)]
+    u, v = [d.astype('float32') for d in np.meshgrid(cols, rows, indexing='ij')]
     if envmap_type.lower() == "latlong":
         x, y, z, valid = latlong2world(u, v)
     elif envmap_type.lower() == "skylatlong":
