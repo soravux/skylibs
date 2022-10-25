@@ -138,13 +138,17 @@ def imwrite(filename, arr, **params):
         raise Exception("Please Install OpenEXR-Python")
 
     compression = 'PIZ' if not 'compression' in params or \
-                     params['compression'] not in ('NONE', 'RLE', 'ZIPS', 'ZIP', 'PIZ', 'PXR24') else params['compression']
+                     params['compression'] not in ('NONE', 'RLE', 'ZIPS', 'ZIP', 'PIZ', 'PXR24', 'B44', 'B44A', 'DWAA', 'DWAB') else params['compression']
     imath_compression = {'NONE' : Imath.Compression(Imath.Compression.NO_COMPRESSION),
                             'RLE' : Imath.Compression(Imath.Compression.RLE_COMPRESSION),
                             'ZIPS' : Imath.Compression(Imath.Compression.ZIPS_COMPRESSION),
                             'ZIP' : Imath.Compression(Imath.Compression.ZIP_COMPRESSION),
                             'PIZ' : Imath.Compression(Imath.Compression.PIZ_COMPRESSION),
-                            'PXR24' : Imath.Compression(Imath.Compression.PXR24_COMPRESSION)}[compression]
+                            'PXR24' : Imath.Compression(Imath.Compression.PXR24_COMPRESSION),
+                            'B44' : Imath.Compression(Imath.Compression.B44_COMPRESSION),
+                            'B44A' : Imath.Compression(Imath.Compression.B44A_COMPRESSION),
+                            'DWAA' : Imath.Compression(Imath.Compression.DWAA_COMPRESSION),
+                            'DWAB' : Imath.Compression(Imath.Compression.DWAB_COMPRESSION)}[compression]
 
 
     if 'pixeltype' in params and params['pixeltype'] in ('HALF', 'FLOAT', 'UINT'):
