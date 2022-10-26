@@ -132,6 +132,8 @@ def imwrite(filename, arr, **params):
             ch_names = ["Y"]
         elif d == 3:
             ch_names = ["R","G","B"]
+        elif d == 4:
+            ch_names = ["R","G","B","A"]
         else:
             ch_names = ['Y{}'.format(idx) for idx in range(d)]
 
