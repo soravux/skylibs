@@ -2,6 +2,8 @@ import warnings
 
 import numpy as np
 
+from skylibs import __version__
+
 
 try:
     import OpenEXR
