@@ -1,7 +1,6 @@
 import numpy as np
 import scipy, scipy.misc, scipy.ndimage, scipy.ndimage.filters
 import scipy.spatial, scipy.interpolate, scipy.spatial.distance
-from scipy.ndimage.interpolation import map_coordinates as map_coords
 
 from pysolar import solar
 
@@ -88,3 +87,23 @@ def sunPosFromCoord(latitude, longitude, time_, elevation=0):
     if elev > np.pi: elev = elev - 2*np.pi
 
     return elev, azim
+
+def sunPositionFromPySolar(latitude, longitude, time, elevation=0):
+    """
+    Find azimuth annd elevation of the sun using the pysolar library.
+    Takes latitude(deg), longitude(deg) and a datetime object.
+    Returns tuple conaining (x, y, z) world coordinate.
+    """
+
+    azimuth = solar.get_azimuth(latitude, longitude, time, elevation)
+    elevation = solar.get_altitude(latitude, longitude, time, elevation)
+
+    # Correct orientation
+    elevation, azimuth = np.deg2rad(elevation), np.deg2rad(90 + azimuth)
+
+    # Convert to cartesian coordinates
+    x = np.cos(elevation) * np.cos(azimuth)
+    z = np.cos(elevation) * np.sin(azimuth)
+    y = np.sin(elevation)
+
+    return x, y, z
