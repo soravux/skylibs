@@ -133,7 +133,8 @@ def imwrite(filename, arr, **params):
         elif d == 3:
             ch_names = ["R","G","B"]
         else:
-            ch_names = ['Y{}'.format(idx) for idx in range(d)]
+            length = len(str(d - 1))
+            ch_names = ['Y{}'.format(str(idx).zfill(length)) for idx in range(d)]
 
     if 'OpenEXR' not in globals():
         print(">>> Install OpenEXR-Python with `conda install -c conda-forge openexr openexr-python`\n\n")
