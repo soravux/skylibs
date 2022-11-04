@@ -144,6 +144,8 @@ Tonemapping using `pfstools`.
 
 ## Changelog
 
+- 0.7.2: `ezexr.imwrite()` now orders correctly channels when > 10 are used.
+- 0.7.1: Added `sunFromPySolar` (Thank Ian!) and support for alpha values and imageio v3 in ezexr(thanks Hong-Xing!).
 - 0.7.0: Fixed `.setHemisphereValue()`, added mode to `.toIntensity()`, fixed angular and sphere projections for normals [0, 0, ±1], added `.getHemisphere(normal)`.
 - 0.6.8: Fixed resizing to be energy-preserving when downscaling; fixed conversion that shifted the envmap by half a pixel
 - 0.6.7: Fixed image envmap embedding to fit the projection coordinates; fixed crash in imwrite with specific channel names
