@@ -2,7 +2,6 @@ import os
 from os import listdir
 from os.path import abspath, isdir, join
 import fnmatch
-import pytz
 import datetime
 
 import numpy as np
@@ -151,17 +150,14 @@ class SkyProbe:
             latitude, longitude = 46.778969, -71.274914
             elevation = 125
 
-            if self.datetime < datetime.datetime(2013, 12, 25, 10, 10, 10, tzinfo=pytz.timezone('US/Eastern')):
+            tz = datetime.timezone(datetime.timedelta(seconds=-17760))
+            if self.datetime < datetime.datetime(2013, 12, 25, 10, 10, 10, tzinfo=tz):
                 # Assume Carnegie Mellon University, Pittsburgh, PA
                 latitude, longitude = 40.442794, -79.944115
                 elevation = 300
 
             d = self.datetime
             if self.datetime.tzinfo is None:
-                # Skydb does not store timezone information
-                # Both localities are in the same timezone (UTC-4)
-                # and can be corrected by adding 4 hours to UTC timestamp through
-                # d += datetime.timedelta(hours=+4) OR by adding timezone information as below
-                d = pytz.timezone('US/Eastern').localize(d, is_dst=False)
+                d += datetime.timedelta(hours=+4)
 
             return sunutils.sunPosFromCoord(latitude, longitude, d, elevation=elevation)
