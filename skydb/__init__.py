@@ -144,20 +144,20 @@ class SkyProbe:
         if method == "intensity":
             self.init_properties()
             return sunutils.sunPosFromEnvmap(self._envmap)
+
         elif method == "coords":
-            latitude = 46.778969
-            longitude = -71.274914
+            # Assume Laval University, Quebec, Canada
+            latitude, longitude = 46.778969, -71.274914
             elevation = 125
 
-            if self.datetime < datetime.datetime(2013, 12, 25, 10, 10, 10):
+            tz = datetime.timezone(datetime.timedelta(seconds=-17760))
+            if self.datetime < datetime.datetime(2013, 12, 25, 10, 10, 10, tzinfo=tz):
+                # Assume Carnegie Mellon University, Pittsburgh, PA
                 latitude, longitude = 40.442794, -79.944115
                 elevation = 300
 
             d = self.datetime
             if self.datetime.tzinfo is None:
-                #TODO get timezone from latitude and longitude
-                # d = pytz.timezone('US/Eastern').localize(self.datetime, is_dst=False)
                 d += datetime.timedelta(hours=+4)
-
 
             return sunutils.sunPosFromCoord(latitude, longitude, d, elevation=elevation)

@@ -71,11 +71,9 @@ def sunPosFromCoord(latitude, longitude, time_, elevation=0):
     Find azimuth annd elevation of the sun using the pysolar library.
     Takes latitude(deg), longitude(deg) and a datetime object.
     Return tuple conaining (elevation, azimuth)
-
-    TODO verify if timezone influences the results.
     """
-    # import datetime
-    # time_ = datetime.datetime(2014, 10, 11, 9, 55, 28)
+    
+    # Find azimuth annd elevation from pysolar library.
     azim = solar.get_azimuth(latitude, longitude, time_, elevation)
     alti = solar.get_altitude(latitude, longitude, time_, elevation)
 
