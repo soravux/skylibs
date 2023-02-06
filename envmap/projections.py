@@ -219,10 +219,17 @@ def world2cube(x, y, z):
     # bring back in the [0,1] intervals
     u = u / 3.
     v = v / 4.
+
+    if u.size == 1:
+        return u.item(), v.item()
+
     return u, v
 
 
 def cube2world(u, v):
+    u = np.atleast_1d(np.asarray(u))
+    v = np.atleast_1d(np.asarray(v))
+    
     # [u,v] = meshgrid(0:3/(3*dim-1):3, 0:4/(4*dim-1):4);
     # u and v are in the [0,1] interval, so put them back to [0,3]
     # and [0,4]
@@ -281,4 +288,8 @@ def cube2world(u, v):
     valid_ind = lor(
         lor(lor(indUp, indLeft), lor(indForward, indRight)), lor(indDown, indBackward))
     valid[valid_ind] = 1
+
+    if x.size == 1:
+        return x.item(), y.item(), z.item(), valid.item()
+
     return x, y, z, valid
