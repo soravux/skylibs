@@ -224,6 +224,33 @@ class EnvironmentMap:
         }.get(self.format_)
         return func(x, y, z)
 
+
+    def world2pixel(self, x, y, z):
+        """Returns the (u, v) coordinates (in the interval defined by the MxN image)."""
+
+        # Get (u,v) in [-1, 1] interval
+        u,v = self.world2image(x, y, z)
+
+        # de-Normalize coordinates to interval defined by the MxN image
+        u = np.floor(u*self.data.shape[1]).astype(int)
+        v = np.floor(v*self.data.shape[0]).astype(int)
+
+        return u, v
+
+
+    def pixel2world(self, u, v):
+        """Returns the (x, y, z) coordinates for pixel cordinates (u,v)(in the interval defined by the MxN image)."""
+        
+        # Normalize coordinates to [-1, 1] interval
+        u = (u+0.5) / self.data.shape[1]
+        v = (v+0.5) / self.data.shape[0]
+        
+        # Get (x, y, z) 
+        x, y, z, v = self.image2world(u, v)
+
+        return x, y, z, v
+    
+
     def interpolate(self, u, v, valid=None, order=1, filter=True):
         """"Interpolate to get the desired pixel values."""
         u = u.copy()

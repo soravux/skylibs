@@ -56,7 +56,7 @@ def sunPosFromEnvmap(envmapInput):
     Return a tuple containing (elevation, azimuth)
     """
     c = findBrightestSpot(envmapInput.data)
-    u, v = c[1] / envmapInput.data.shape[1], c[0] / envmapInput.data.shape[0]
+    u, v = (c[1]+0.5) / envmapInput.data.shape[1], (c[0]+0.5) / envmapInput.data.shape[0]
 
     x, y, z, _ = envmapInput.image2world(u, v)
 
