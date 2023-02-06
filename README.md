@@ -72,7 +72,7 @@ Skylibs employs the following right-handed coordinates system: +X = right, +Y = 
 - `.embed(self, vfov, rotation_matrix, image)`: inverse of `project`, embeds an image in the environment map.
 - `.imageCoordinates()`: returns the (u, v) coordinates at each pixel center.
 - `.worldCoordinates()`: returns the (x, y, z, valid) world coordinates for each pixel center, with mask `valid` (anything outside this mask does not project to the world).
-- `.world2image(x, y, z)`: returns the (u, v) coordinates of the vector (x, y, z).
+- `.world2image(x, y, z)`: returns the (u, v) coordinates of the vector (x, y, z). Pixel coordinates can be obtained with `floor(u)` and `floor(v)`.
 - `.image2world(u, v)`: returns the (x, y, z) coordinates of the coordinates (u, v).
 - `.interpolate(u, v, valid)`: interpolates the envmap to coordinates (u, v) masked with valid.
 
