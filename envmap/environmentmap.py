@@ -4,7 +4,7 @@ from copy import deepcopy
 from decimal import Decimal
 
 import numpy as np
-from scipy.ndimage.interpolation import map_coordinates, zoom
+from scipy.ndimage import map_coordinates, zoom
 from skimage.transform import resize_local_mean, downscale_local_mean
 
 from hdrio import imread
@@ -252,7 +252,13 @@ class EnvironmentMap:
     
 
     def interpolate(self, u, v, valid=None, order=1, filter=True):
-        """"Interpolate to get the desired pixel values."""
+        """"
+        Interpolate to get the desired pixel values.
+
+        :param order: Interpolation order (0: nearest, 1: linear, ..., 5).
+        :type order: integer (0,1,...,5)
+        """
+
         u = u.copy()
         v = v.copy()
         
@@ -301,20 +307,22 @@ class EnvironmentMap:
 
         return self
 
-    def convertTo(self, targetFormat, targetDim=None):
+    def convertTo(self, targetFormat, targetDim=None, order=1):
         """
         Convert to another format.
 
         :param targetFormat: Target format.
         :param targetDim: Target dimension.
-        :type targetFormat: string
-        :type targetFormat: integer
+        :param order: Interpolation order (0: nearest, 1: linear, ..., 5).
 
+        :type targetFormat: string
+        :type targetDim: integer
+        :type order: integer (0,1,...,5)
         """
         self.validate()
-
         assert targetFormat.lower() in SUPPORTED_FORMATS, (
             "Unknown format: {}".format(targetFormat))
+        assert order in range(6), "Spline interpolation order must be between 0 and 5."
 
         if not targetDim:
             # By default, number of rows
@@ -324,19 +332,23 @@ class EnvironmentMap:
         dx, dy, dz, valid = eTmp.worldCoordinates()
         u, v = self.world2image(dx, dy, dz)
         self.format_ = targetFormat.lower()
-        self.interpolate(u, v, valid)
+        self.interpolate(u, v, valid, order)
 
         return self
 
-    def rotate(self, dcm):
+    def rotate(self, dcm, order=1):
         """
         Rotate the environment map.
 
-        :param input: Rotation information (currently only 3x3 numpy matrix)
-        """
-        self.validate()
+        :param dcm: Rotation information (currently only 3x3 numpy matrix)
+        :param order: Integer interpolation order (0: nearest, 1: linear, ..., 5).
 
+        """
+
+        self.validate()
         assert type(dcm).__module__ == np.__name__ and dcm.ndim == 2 and dcm.shape == (3, 3)
+        assert order in range(6), "Spline interpolation order must be between 0 and 5."
+
         dx, dy, dz, valid = self.worldCoordinates()
 
         ptR = np.dot(dcm, np.vstack((dx.flatten(), dy.flatten(), dz.flatten())))
@@ -347,19 +359,23 @@ class EnvironmentMap:
         dz = np.clip(dz, -1, 1)
 
         u, v = self.world2image(dx, dy, dz)
-        self.interpolate(u, v, valid)
+        self.interpolate(u, v, valid, order)
 
         return self
 
     def resize(self, targetSize, order=1, debug=False):
         """
         Resize the current environnement map to targetSize.
-        The energy-preserving "pixel mixing" alrogithm is used when downscaling.
+        The energy-preserving "pixel mixing" algorithm is used when downscaling unless 
+        order is set to 0 (nearest neighbor interpolation).
 
         `targetSize` is either the desired `height` or `(height, width)`.
-        `order` is only used when upsampling.
+        `order` is the order of the spline interpolation (0: nearest, 1: linear, ..., 5).
+
         """
+
         self.validate()
+        assert order in range(6), "Spline interpolation order must be between 0 and 5."
 
         if not isinstance(targetSize, tuple):
             if self.format_ == 'latlong':
@@ -371,11 +387,12 @@ class EnvironmentMap:
             else:
                 targetSize = (targetSize, targetSize)
         
-        # downsampling
-        if targetSize[0] < self.data.shape[0]:
-
-            if debug == True:
+        if debug == True:
                 old_mean = self.data.mean()
+
+        # downsampling
+        if targetSize[0] < self.data.shape[0] and order !=0:
+
 
             # check if integer
             if (Decimal(self.data.shape[0]) / Decimal(targetSize[0])) % 1 == 0:
@@ -384,21 +401,23 @@ class EnvironmentMap:
                 fac = self.data.shape[0] // targetSize[0]
                 self.data = downscale_local_mean(self.data, (fac, fac, 1))
             else:    
+                if debug is True:
+                    print("non-integer resize")
                 self.data = resize_local_mean(self.data, targetSize, grid_mode=True, preserve_range=True)
 
-            if debug == True:
-                print("Energy difference in resize: {:.04f}".format(self.data.mean()/old_mean - 1.))
+        else: # upsampling
+            if debug is True:
+                    print("upsampling")
+            
+            _size = []
+            for i in range(2):
+                _size.append(targetSize[i] / self.data.shape[i] if targetSize[i] > 1. else targetSize[i])
+            _size.append(1.0)
+            self.data = zoom(self.data, _size, order=order)
 
-            return self
+        if debug == True:
+            print("Energy difference in resize: {:.04f}".format(self.data.mean()/old_mean - 1.))
         
-        # upsampling
-        _size = []
-        for i in range(2):
-            _size.append(targetSize[i] / self.data.shape[i] if targetSize[i] > 1. else targetSize[i])
-
-        _size.append(1.0)
-
-        self.data = zoom(self.data, _size, order=order)
         return self
 
     def toIntensity(self, mode="ITU BT.709", colorspace="linear"):
@@ -494,14 +513,18 @@ class EnvironmentMap:
 
         return meanlight
 
-    def embed(self, vfov, rotation_matrix, image):
-        """Projects an image onto the environment map.
+    def embed(self, vfov, rotation_matrix, image, order=1):
+        """
+        Projects an image onto the environment map.
 
         :vfov: Vertical Field of View (degrees).
         :rotation_matrix: Camera rotation matrix.
-        :image: The image to project."""
+        :image: The image to project.
+        :param order: Integer interpolation order (0: nearest, 1: linear, ..., 5).
+        """
 
         self.validate()
+        assert order in range(6), "Spline interpolation order must be between 0 and 5."
 
         targetDim = self.data.shape[0]
         targetFormat = self.format_
@@ -537,12 +560,13 @@ class EnvironmentMap:
 
         self.format_ = targetFormat.lower()
         self.data = image.copy()[:,::-1,...]
-        self.interpolate(u, v, valid)
+        self.interpolate(u, v, valid, order)
         return self
 
     def project(self, vfov, rotation_matrix, ar=4./3., resolution=(640, 480),
-                projection="perspective", mode="normal"):
-        """Perform a projection onto a plane ("_simulates_" a camera).
+                projection="perspective", mode="normal", order=1):
+        """
+        Perform a projection onto a plane ("_simulates_" a camera).
 
         Note: this function does not modify the foreshortening present in the
         environment map.
@@ -555,9 +579,12 @@ class EnvironmentMap:
         :mode: "normal": perform crop (default)
                "mask": show pixel mask in the envmap,
                "normal+uv": returns (crop, u, v), where (u,v) are the coordinates
-                            of the crop."""
+                            of the crop.
+        :param order: Integer interpolation order (0: nearest, 1: linear, ..., 5).
+        """
 
         self.validate()
+        assert order in range(6), "Spline interpolation order must be between 0 and 5."
 
         coords = self._cameraCoordinates(vfov, rotation_matrix, ar,
                                          resolution, projection, mode)
@@ -573,7 +600,7 @@ class EnvironmentMap:
         u, v = target.world2image(coords[0,:], coords[1,:], coords[2,:])
         u, v = u.reshape(resolution[::-1]), v.reshape(resolution[::-1])
 
-        crop = target.interpolate(u, v).data
+        crop = target.interpolate(u, v, order=order).data
 
         if mode == "normal+uv":
             return crop, u, v
