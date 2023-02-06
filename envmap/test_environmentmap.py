@@ -5,7 +5,7 @@ from . import EnvironmentMap
 
 def test_imageCoordinates():
     for s in range(4, 9, 4):
-        e = EnvironmentMap(np.zeros((s,s)), 'Angular')
+        e = EnvironmentMap(np.zeros((s,s,1)), 'Angular')
         u, v = e.imageCoordinates()
         # All rows/columns are the same
         assert np.all(np.diff(u, axis=0) == 0)
