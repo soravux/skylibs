@@ -157,7 +157,8 @@ def world2sphere(x, y, z):
     x, y, z = np.asarray(x), np.asarray(y), np.asarray(z)
     
     denum = (2 * np.sqrt(x**2 + y**2))
-    r = np.sin(.5 * np.arccos(-z)) / denum
+    with np.errstate(divide='ignore', invalid='ignore'):
+        r = np.sin(.5 * np.arccos(-z)) / denum
 
     u = np.atleast_1d(.5 + r * x)
     v = np.atleast_1d(.5 - r * y)
@@ -280,9 +281,10 @@ def cube2world(u, v):
     # normalize
     # np.hypot(x, y, z) #sqrt(x.^2 + y.^2 + z.^2);
     norm = np.sqrt(x**2 + y**2 + z**2)
-    x = x / norm
-    y = y / norm
-    z = z / norm
+    with np.errstate(divide='ignore', invalid='ignore'):
+        x = x / norm
+        y = y / norm
+        z = z / norm
 
     # return valid indices
     valid_ind = lor(

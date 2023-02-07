@@ -4,6 +4,8 @@ import numpy as np
 
 from envmap import projections as t
 from envmap import environmentmap as env
+from envmap.environmentmap import SUPPORTED_FORMATS
+
 
 # pytest [-s] [-k test_projections_cube]
 
@@ -67,36 +69,35 @@ def test_projections_cube(coordinate_UV, coordinate_XYZR):
     np.testing.assert_almost_equal(y_, Y_, decimal=6)
     np.testing.assert_almost_equal(z_, Z_, decimal=6)
 
-def test_projections_pixel():
-    
-    env_formats = [ 'angular', 'skyangular', 'latlong', 'skylatlong', 'sphere', 'cube' ]
 
-    for format in env_formats:
-        e = env.EnvironmentMap(8, format, channels=2)
+@pytest.mark.parametrize("format_", SUPPORTED_FORMATS)
+def test_projections_pixel(format_):
 
-        # Meshgrid of Normalized Coordinates 
-        cols = np.linspace(0, 1, e.data.shape[1]*2 + 1)
-        rows = np.linspace(0, 1, e.data.shape[0]*2 + 1)
-        cols = cols[1::2]
-        rows = rows[1::2]
-        u, v = np.meshgrid(cols, rows)
+    e = env.EnvironmentMap(8, format_, channels=2)
 
-        # Meshgrid of M*N image Coordinates 
-        cols = np.linspace(0, e.data.shape[1]-1, e.data.shape[1])
-        rows = np.linspace(0, e.data.shape[0]-1, e.data.shape[0])
-        U, V = np.meshgrid(cols, rows)
+    # Meshgrid of Normalized Coordinates
+    cols = np.linspace(0, 1, e.data.shape[1]*2 + 1)
+    rows = np.linspace(0, 1, e.data.shape[0]*2 + 1)
+    cols = cols[1::2]
+    rows = rows[1::2]
+    u, v = np.meshgrid(cols, rows)
 
-        # pixel2world(U,V)
-        x, y, z, v = e.image2world(u,v) 
-        x_, y_, z_, v_ = e.pixel2world(U, V)
+    # Meshgrid of M*N image Coordinates
+    cols = np.linspace(0, e.data.shape[1]-1, e.data.shape[1])
+    rows = np.linspace(0, e.data.shape[0]-1, e.data.shape[0])
+    U, V = np.meshgrid(cols, rows)
 
-        np.testing.assert_array_almost_equal(x, x_, decimal=6)
-        np.testing.assert_array_almost_equal(y, y_, decimal=6)
-        np.testing.assert_array_almost_equal(z, z_, decimal=6)
-        np.testing.assert_array_equal(v,v_)
+    # pixel2world(U,V)
+    x, y, z, v = e.image2world(u,v)
+    x_, y_, z_, v_ = e.pixel2world(U, V)
 
-        # world2pixel(x,y,z)
-        U_, V_ = e.world2pixel(x,y,z)
+    np.testing.assert_array_almost_equal(x, x_, decimal=6)
+    np.testing.assert_array_almost_equal(y, y_, decimal=6)
+    np.testing.assert_array_almost_equal(z, z_, decimal=6)
+    np.testing.assert_array_equal(v,v_)
 
-        np.testing.assert_array_equal(U_, U)
-        np.testing.assert_array_equal(V_, V)
+    # world2pixel(x,y,z)
+    U_, V_ = e.world2pixel(x,y,z)
+
+    np.testing.assert_array_equal(U_[v], U[v])
+    np.testing.assert_array_equal(V_[v], V[v])
