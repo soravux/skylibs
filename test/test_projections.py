@@ -100,3 +100,25 @@ def test_projections_pixel():
 
         np.testing.assert_array_equal(U_, U)
         np.testing.assert_array_equal(V_, V)
+
+
+@pytest.mark.parametrize("format_", env.SUPPORTED_FORMATS)
+def test_projections_image(format_):
+    
+    e = env.EnvironmentMap(8, format_, channels=2)
+
+    # Meshgrid of Normalized Coordinates 
+    cols = np.linspace(0, 1, e.data.shape[1]*2 + 1)
+    rows = np.linspace(0, 1, e.data.shape[0]*2 + 1)
+    cols = cols[1::2]
+    rows = rows[1::2]
+    U, V = np.meshgrid(cols, rows)
+
+    # image2world(U,V)
+    x, y, z, valid = e.image2world(U,V) 
+
+    # world2image(x,y,z)
+    U_, V_ = e.world2image(x,y,z)
+
+    np.testing.assert_array_almost_equal(U[valid], U_[valid], decimal=6)
+    np.testing.assert_array_almost_equal(V[valid], V_[valid], decimal=6)
