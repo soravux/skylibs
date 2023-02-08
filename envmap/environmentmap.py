@@ -76,11 +76,11 @@ class EnvironmentMap:
             if self.format_ == 'latlong':
                 self.data = np.zeros((im, im*2, channels))
             elif self.format_ == 'skylatlong':
-                    self.data = np.zeros((im, im*4, channels))
+                self.data = np.zeros((im, im*4, channels))
             elif self.format_ == 'cube':
                 self.data = np.zeros((im, round(3/4*im), channels))
             else:
-                    self.data = np.zeros((im, im, channels))
+                self.data = np.zeros((im, im, channels))
         elif type(im).__module__ == np.__name__:
             # We received a numpy array
             self.data = np.asarray(im, dtype='double')
@@ -106,7 +106,7 @@ class EnvironmentMap:
         elif self.format_ == 'skylatlong':
             assert 4*self.data.shape[0] == self.data.shape[1], (
                 "SkyLatLong format width should be four times the height")
-        
+
         assert self.data.ndim == 3, "Expected 3-dim array. For grayscale, use [h,w,1]."
 
     @classmethod
@@ -240,19 +240,18 @@ class EnvironmentMap:
 
     def pixel2world(self, u, v):
         """Returns the (x, y, z) coordinates for pixel cordinates (u,v)(in the interval defined by the MxN image)."""
-        
+
         # Normalize coordinates to [-1, 1] interval
         u = (u+0.5) / self.data.shape[1]
         v = (v+0.5) / self.data.shape[0]
-        
+
         # Get (x, y, z) 
         x, y, z, v = self.image2world(u, v)
 
         return x, y, z, v
-    
 
     def interpolate(self, u, v, valid=None, order=1, filter=True):
-        """"
+        """
         Interpolate to get the desired pixel values.
 
         :param order: Interpolation order (0: nearest, 1: linear, ..., 5).
@@ -261,7 +260,7 @@ class EnvironmentMap:
 
         u = u.copy()
         v = v.copy()
-        
+
         # Repeat the first and last rows/columns for interpolation purposes
         h, w, d = self.data.shape
         source = np.empty((h + 2, w + 2, d))
@@ -388,11 +387,10 @@ class EnvironmentMap:
                 targetSize = (targetSize, targetSize)
         
         if debug == True:
-                old_mean = self.data.mean()
+            old_mean = self.data.mean()
 
         # downsampling
         if targetSize[0] < self.data.shape[0] and order != 0:
-
 
             # check if integer
             if (Decimal(self.data.shape[0]) / Decimal(targetSize[0])) % 1 == 0:
@@ -405,19 +403,16 @@ class EnvironmentMap:
                     print("non-integer resize")
                 self.data = resize_local_mean(self.data, targetSize, grid_mode=True, preserve_range=True)
 
-        else: # upsampling
-            if debug is True:
-                    print("upsampling")
-            
+        else: # upsampling or nearest neighbor
             _size = []
             for i in range(2):
                 _size.append(targetSize[i] / self.data.shape[i] if targetSize[i] > 1. else targetSize[i])
             _size.append(1.0)
             self.data = zoom(self.data, _size, order=order)
 
-        if debug == True:
+        if debug is True:
             print("Energy difference in resize: {:.04f}".format(self.data.mean()/old_mean - 1.))
-        
+
         return self
 
     def toIntensity(self, mode="ITU BT.709", colorspace="linear"):
@@ -435,7 +430,7 @@ class EnvironmentMap:
         if self.data.shape[2] != 3:
             print("Envmap does not have 3 channels. This function won't do anything.")
             return self
-        
+
         if colorspace.lower() == "sRGB":
             if self.data.max() > 1.:
                 raise Exception("Error during sRGB to linear conversion: data is > 1. Please linearize "
@@ -458,7 +453,6 @@ class EnvironmentMap:
 
     def getHemisphere(self, normal, channels=True):
         """
-        
         normal: 
         """
         normal = np.asarray(normal, dtype=np.float32).reshape((-1))
@@ -471,7 +465,7 @@ class EnvironmentMap:
         mask = xyz.dot(normal) > 0
         if channels == False:
             return mask
-        
+
         return np.tile(mask[:,:,None], (1, 1, self.data.shape[2]))
 
     def setHemisphereValue(self, normal, value):

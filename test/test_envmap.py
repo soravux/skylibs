@@ -22,6 +22,25 @@ def get_envmap(sz, up_factor, format_, channels=3):
     return e
 
 
+@pytest.mark.parametrize("format_", SUPPORTED_FORMATS)
+def test_imageCoordinates(format_):
+    s = 64
+    e = EnvironmentMap(s, format_)
+    u, v = e.imageCoordinates()
+
+    s2, s1 = e.data.shape[:2]
+
+    # All rows/columns are the same
+    np.testing.assert_array_almost_equal(np.diff(u, axis=0), 0, decimal=5)
+    np.testing.assert_array_almost_equal(np.diff(v, axis=1), 0, decimal=5)
+    # All the columns/rows are spaced by 1/s
+    np.testing.assert_array_almost_equal(np.diff(u, axis=1), 1/s1, decimal=5)
+    np.testing.assert_array_almost_equal(np.diff(v, axis=0), 1/s2, decimal=5)
+    # First element is (1/s)/2
+    np.testing.assert_array_almost_equal(u[0,0], 1/s1/2, decimal=5)
+    np.testing.assert_array_almost_equal(v[0,0], 1/s2/2, decimal=5)
+
+
 @pytest.mark.parametrize("envmap_type,in_sz,out_sz", product(SUPPORTED_FORMATS, [512, 431, 271], [512, 431, 271]))
 def test_resize_integer(envmap_type, in_sz, out_sz):
     e = get_envmap(in_sz, 1, envmap_type, 1)
