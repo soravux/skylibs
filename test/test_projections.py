@@ -4,7 +4,6 @@ import numpy as np
 
 from envmap import projections as t
 from envmap import environmentmap as env
-from envmap.environmentmap import SUPPORTED_FORMATS
 
 
 # pytest [-s] [-k test_projections_cube]
@@ -114,4 +113,3 @@ def test_projections_image(format_):
 
     np.testing.assert_array_almost_equal(u[valid], u_[valid], decimal=5)
     np.testing.assert_array_almost_equal(v[valid], v_[valid], decimal=5)
-
