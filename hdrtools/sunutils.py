@@ -5,6 +5,7 @@ import scipy.spatial, scipy.interpolate, scipy.spatial.distance
 from pysolar import solar
 
 import envmap
+from envmap.projections import latlong2world
 
 
 def findBrightestSpot(image, minpct=99.99):
@@ -50,58 +51,88 @@ def findBrightestSpot(image, minpct=99.99):
     return centerpos
 
 
-def sunPosFromEnvmap(envmapInput):
+def sunPosition_fromEnvmap(envmapInput):
     """
-    Find the azimuth and elevation of the sun using the environnement map provided.
-    Return a tuple containing (elevation, azimuth)
+    Finds the azimuth and elevation of the sun using the environnement map provided.
+    Returns a tuple containing (elevation, azimuth)
     """
     c = findBrightestSpot(envmapInput.data)
     u, v = (c[1]+0.5) / envmapInput.data.shape[1], (c[0]+0.5) / envmapInput.data.shape[0]
 
-    x, y, z, _ = envmapInput.image2world(u, v)
+    azimuth = np.pi*(2*u - 1)
+    elevation = np.pi*v
 
-    elev = np.arcsin(y)
-    azim = np.arctan2(x, -z)
-
-    return elev, azim
+    return elevation, azimuth
 
 
-def sunPosFromCoord(latitude, longitude, time_, elevation=0):
+def sunPosition_pySolar_zenithAzimuth(latitude, longitude, time, elevation=0):
     """
-    Find azimuth annd elevation of the sun using the pysolar library.
+    Finds the azimuth and zenith angle of the sun using the pySolar library.
     Takes latitude(deg), longitude(deg) and a datetime object.
-    Return tuple conaining (elevation, azimuth)
+    Returns a tuple containing (elevation, azimuth) in RADIANS with world coordinate orientation.
+
+    Please note:
+    zenith angle = 90degrees - elevation angle
+    azimuth angle = north-based azimuth angles require offset (+90deg) and inversion (*-1) to measure clockwise
+    thus, azimuth = (pi/2) - azimuth
     """
     
-    # Find azimuth annd elevation from pysolar library.
-    azim = solar.get_azimuth(latitude, longitude, time_, elevation)
-    alti = solar.get_altitude(latitude, longitude, time_, elevation)
+    # Find azimuth and elevation from pySolar library.
+    azimuth = solar.get_azimuth(latitude, longitude, time, elevation)
+    altitude = solar.get_altitude(latitude, longitude, time, elevation)
 
     # Convert to radians
-    azim = np.radians(-azim)
-    elev = np.radians(90-alti)
+    azimuth = (np.pi/2) + np.deg2rad(-azimuth)
+    zenith = np.deg2rad(90-altitude) 
 
-    if azim > np.pi: azim = azim - 2*np.pi
-    if elev > np.pi: elev = elev - 2*np.pi
+    # Reset if degrees > 180
+    if azimuth > np.pi: azimuth = azimuth - 2*np.pi
+    if zenith > np.pi: zenith = zenith - 2*np.pi
 
-    return elev, azim
+    return zenith, azimuth
 
-def sunPositionFromPySolar(latitude, longitude, time, elevation=0):
+
+def sunPosition_pySolar_UV(latitude, longitude, time, elevation=0):
     """
-    Find azimuth annd elevation of the sun using the pysolar library.
-    Takes latitude(deg), longitude(deg) and a datetime object.
-    Returns tuple conaining (x, y, z) world coordinate.
+    Finds the azimuth and elevation of the sun using the pySolar library.
+    Takes latitude (in degrees), longitude(in degrees) and a datetime object.
+    Returns a tuple containing the (x, y, z) world coordinate.
+
+    Note, the validity (v) of the coordinate is not returned. 
+    Please check the coordinate in respect to your environment map.
     """
 
-    azimuth = solar.get_azimuth(latitude, longitude, time, elevation)
-    elevation = solar.get_altitude(latitude, longitude, time, elevation)
+    zenith, azimuth = sunPosition_pySolar_zenithAzimuth(
+        latitude, longitude, 
+        time, 
+        elevation
+    )
+  
+    # Fix orientation of azimuth
+    azimuth = -(azimuth - (np.pi/2))
+    
+    # Convert to UV coordinates
+    u = (azimuth / (2*np.pi))
+    v = zenith/np.pi
+    return u,v
 
-    # Correct orientation
-    elevation, azimuth = np.deg2rad(elevation), np.deg2rad(90 + azimuth)
 
-    # Convert to cartesian coordinates
-    x = np.cos(elevation) * np.cos(azimuth)
-    z = np.cos(elevation) * np.sin(azimuth)
-    y = np.sin(elevation)
+def sunPosition_pySolar_XYZ(latitude, longitude, time, elevation=0):
+    """
+    Finds the azimuth and elevation of the sun using the pySolar library.
+    Takes latitude (in degrees), longitude(in degrees) and a datetime object.
+    Returns a tuple containing the (x, y, z) world coordinate.
 
-    return x, y, z
+    Note, the validity (v) of the coordinate is not returned. 
+    Please check the coordinate in respect to your environment map.
+    """
+
+    u,v = sunPosition_pySolar_UV(
+        latitude, longitude, 
+        time, 
+        elevation
+    )
+  
+    # Convert to world coordinates
+    x,y,z, _ = latlong2world(u,v)
+    return x,y,z
