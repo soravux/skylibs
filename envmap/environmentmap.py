@@ -391,7 +391,7 @@ class EnvironmentMap:
                 old_mean = self.data.mean()
 
         # downsampling
-        if targetSize[0] < self.data.shape[0] and order !=0:
+        if targetSize[0] < self.data.shape[0] and order != 0:
 
 
             # check if integer
