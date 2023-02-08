@@ -5,6 +5,7 @@ import numpy as np
 from envmap import projections as t
 from envmap import environmentmap as env
 
+
 # pytest [-s] [-k test_projections_cube]
 
 @pytest.mark.parametrize("coordinate_UV, coordinate_XYZR", 
