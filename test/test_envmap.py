@@ -3,7 +3,7 @@ from itertools import product
 import pytest
 from skimage.transform import resize
 from scipy.ndimage import binary_erosion
-from envmap import EnvironmentMap, rotation_matrix
+from envmap import EnvironmentMap, rotation_matrix, rotations
 from envmap.environmentmap import SUPPORTED_FORMATS
 
 
@@ -195,3 +195,57 @@ def test_worldCoordinates_ndarray(format_, normal):
 
     normal = np.asarray(normal)
     u, v = e.world2image(*normal)
+
+
+@pytest.mark.parametrize("format_1, format_2", product(SUPPORTED_FORMATS, SUPPORTED_FORMATS))
+def test_interpolation_convertTo_discrete_values(format_1, format_2):
+    # test interpolation order 0 (nearest neighbor)
+
+    # converTo() should not change the unique values in the data
+    e_1 = EnvironmentMap(128, format_1)
+    e_1.data = np.random.randint(0,512, size=e_1.data.shape)
+    unique_1 = np.unique(e_1.data)
+        
+    # convertTo()
+    e_2 = e_1.convertTo(format_2, order=0)
+    # e_2 contains nan values... ¯\_(ツ)_/¯
+    unique_2 = [x for x in np.unique(e_2.data) if not np.isnan(x)]
+
+    assert len(unique_2) > 0, f"Format {format_1}->{format_2}: unique_2 is empty"
+    for x in unique_2:
+        assert x in unique_1, f"Format {format_1}->{format_2}: {x} was not in unique_1"
+
+
+@pytest.mark.parametrize("format_", SUPPORTED_FORMATS)
+def test_interpolation_rotate_discrete_values(format_):
+    # rotate() should not change the unique values in the data
+    for i in range(0,360,10):
+        e_1 = EnvironmentMap(128, format_)
+        e_1.data = np.random.randint(0, 512, size=e_1.data.shape)
+        unique_1 = np.unique(e_1.data)
+
+        # Rotate
+        angle = np.deg2rad(i)
+        dcm = rotations.roty(angle)
+        e_2 = e_1.rotate(dcm, order=0)
+
+        unique_2 = np.unique(e_2.data) 
+        assert len(unique_2) > 0, f"Format {format_}: unique_2 is empty"
+        for x in unique_2:
+            assert x in unique_1, f"Format {format_}: {x} was not in {unique_1}"
+
+
+@pytest.mark.parametrize("format_", SUPPORTED_FORMATS)
+def test_interpolation_resize_discrete_values(format_):
+    # scale() should not change the unique values in the data while upscaling
+    for s in [32,64,100,200,256,512]:
+        e_1 = EnvironmentMap(128, format_)
+        e_1.data = np.random.randint(0, 128, size=e_1.data.shape)
+        unique_1 = [ x for x in np.unique(e_1.data) if not np.isnan(x) ]
+
+        e_2 = e_1.resize(s, order=0)
+        unique_2 = [ x for x in np.unique(e_2.data) if not np.isnan(x) ]
+
+        assert len(unique_2) > 0, f"Format {format_}: unique_2 is empty"
+        for x in unique_2:
+            assert x in unique_1 , f"Format {format_}: {x} was not in {unique_1}"

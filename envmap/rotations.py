@@ -26,3 +26,10 @@ def rotz(theta):
     return np.array([[np.cos(theta), -np.sin(theta), 0],
                      [np.sin(theta), np.cos(theta), 0],
                      [0, 0, 1]], dtype='float64')
+
+
+def rot(theta=(0,0,0)):
+    """
+    Produces a counter-clockwise 3D rotation matrix around axis X, Y and Z with angles `theta` in radians.
+    """
+    return np.dot(rotz(theta[2]), np.dot(roty(theta[1]), rotx(theta[0])))
