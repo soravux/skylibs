@@ -49,7 +49,6 @@ def imread(filename, bufferImage=None, rgb=True):
 
     # Get the number of channels
     nc = len(header['channels'])
-    print(nc)
 
     # Check the data type
     dtGlobal = list(header['channels'].values())[0].type
