@@ -3,12 +3,12 @@ import pathlib
 from copy import deepcopy
 from decimal import Decimal
 
+from tqdm import tqdm
 import numpy as np
 from scipy.ndimage import map_coordinates, zoom
 from skimage.transform import resize_local_mean, downscale_local_mean
 
 from hdrio import imread
-
 from .tetrahedronSolidAngle import tetrahedronSolidAngle
 from .projections import *
 from .xmlhelper import EnvmapXMLParser
@@ -506,6 +506,30 @@ class EnvironmentMap:
         meanlight = np.nansum(xyz[...,np.newaxis] * meanlight[...,np.newaxis].transpose((0,1,3,2)), (0, 1))
 
         return meanlight
+
+    def blur(self, kappa):
+        """
+        Blurs the environment map, taking into account the format.
+        Uses the von Mises-Fisher notation (`kappa` >= 0 for blur bandwidth, higher values are sharper)
+        """
+
+        x, y, z, _ = self.worldCoordinates()
+        xyz = np.dstack((x, y, z)).reshape((-1, 3))
+
+        h, w, c = self.data.shape[:3]
+        data = self.data.reshape((-1, c))
+        sa = self.solidAngles().reshape((-1, 1))
+
+        C3 = kappa/(4*np.pi*np.sinh(kappa))
+
+        result = np.empty((h*w, c), dtype=np.float32)
+
+        for i in tqdm(range(xyz.shape[0])):
+            normal = xyz[i:i+1,:]
+            result[i,:] = np.sum(data*sa*C3*np.exp(kappa*np.sum(xyz*normal, 1, keepdims=True)), 0)
+
+        self.data = result.reshape((h, w, c))
+        return self
 
     def embed(self, vfov, rotation_matrix, image, order=1):
         """
