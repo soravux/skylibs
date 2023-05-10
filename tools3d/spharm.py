@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 from scipy.special import sph_harm
-from pyshtools.shtools import SHExpandDH, MakeGridDH
+from pyshtools import shtools
 
 from envmap import EnvironmentMap
 
@@ -37,7 +37,7 @@ class SphericalHarmonic:
 
         self.coeffs = []
         for i in range(self.spatial.data.shape[2]):
-            self.coeffs.append(SHExpandDH(self.spatial.data[:,:,i], norm=norm, sampling=2, lmax_calc=max_l))
+            self.coeffs.append(shtools.SHExpandDH(self.spatial.data[:,:,i], norm=norm, sampling=2, lmax_calc=max_l))
 
     def reconstruct(self, height=None, max_l=None, clamp_negative=True):
         """
@@ -47,7 +47,7 @@ class SphericalHarmonic:
 
         retval = []
         for i in range(len(self.coeffs)):
-            retval.append(MakeGridDH(self.coeffs[i], norm=self.norm, sampling=2, lmax=height, lmax_calc=max_l))
+            retval.append(shtools.MakeGridDH(self.coeffs[i], norm=self.norm, sampling=2, lmax=height, lmax_calc=max_l))
 
         retval = np.asarray(retval).transpose((1,2,0))
 
@@ -55,6 +55,26 @@ class SphericalHarmonic:
             retval = np.maximum(retval, 0)
 
         return retval
+    
+    def window(self, function="sinc"):
+        """
+        Applies a windowing function to the coefficients to reduce ringing artifacts.
+        See https://www.ppsloan.org/publication/StupidSH36.pdf
+        """
+        deg = self.coeffs[0].shape[2]
+        x = np.linspace(0, 1, deg + 1)[:-1]
+
+        if function == "sinc":
+            kernel = np.sinc(x)
+        else:
+            raise NotImplementedError(f"Windowing function {function} is not implemented.")
+    
+        for c in range(len(self.coeffs)):
+            for l in range(self.coeffs[c].shape[2]):
+                self.coeffs[c][0,l,:] *= kernel   # real
+                self.coeffs[c][1,l,:] *= kernel   # imag
+
+        return self
 
 
 if __name__ == '__main__':
