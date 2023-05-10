@@ -144,6 +144,8 @@ Tonemapping using `pfstools`.
 
 ## Changelog
 
+- 0.7.4: Fixed tools3d.spharm compatibility with latest pyshtools.
+- 0.7.3: Added vMF-based envmap blur functionality. `ezexr` does not print the number of channels on stdout.
 - 0.7.2: `ezexr.imwrite()` now orders correctly channels when > 10 are used.
 - 0.7.1: Added `sunFromPySolar` (Thank Ian!) and support for alpha values and imageio v3 in ezexr(thanks Hong-Xing!).
 - 0.7.0: Fixed `.setHemisphereValue()`, added mode to `.toIntensity()`, fixed angular and sphere projections for normals [0, 0, ±1], added `.getHemisphere(normal)`.
