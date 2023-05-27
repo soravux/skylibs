@@ -144,6 +144,79 @@ class EnvironmentMap:
 
         return cls(cube, format_="cube")
 
+
+    @classmethod
+    def from_omnicam(cls, im, targetDim, targetFormat='skyangular', OcamCalib_=None, copy=True, order=1):
+        """
+        Creates an EnvironmentMap from Omnidirectional Camera (OcamCalib) capture.
+
+        :param im: Image path (str, pathlib.Path) or data (np.ndarray) representing 
+                an ocam image.
+        :param OcamCalib: OCamCalib calibration dictionary. If not provided and 
+                param im is an image path, then calibration will be loaded directly 
+                from matching ".meta.xml" file.
+        :param targetFormat: Target format.
+        :param targetDim: Target dimension.
+        :param order: Interpolation order (0: nearest, 1: linear, ..., 5).
+        :param copy: When a numpy array is given, should it be copied.
+
+        :type im: str, Path, np.ndarray
+        :type OcamCalib: dict
+        :type targetFormat: string
+        :type targetDim: integer
+        :type order: integer (0,1,...,5)
+        :type copy: bool
+        """
+
+        if not OcamCalib_ and isPath(im):
+            filename = os.path.splitext(str(im))[0]
+            metadata = EnvmapXMLParser("{}.meta.xml".format(filename))
+            OcamCalib_ = metadata.get_calibration()
+
+        assert OcamCalib_ is not None, (
+            "Please provide OCam (metadata file not found).")
+
+        if isPath(im):
+            # We received the filename
+            data = imread(str(im))
+        elif type(im).__module__ == np.__name__:
+            # We received a numpy array
+            data = np.asarray(im, dtype='double')
+            if copy:
+                data = data.copy()
+        else:
+            raise Exception('Could not understand input. Please provide a '
+                            'filename (str) or an image (np.ndarray).')
+
+        e = EnvironmentMap(targetDim, targetFormat)
+        dx, dy, dz, valid = e.worldCoordinates()
+        u,v = world2ocam(dx, dy, dz, OcamCalib_)
+
+        # Interpolate
+        # Repeat the first and last rows/columns for interpolation purposes
+        h, w, d = data.shape
+        source = np.empty((h + 2, w + 2, d))
+
+        source[1:-1, 1:-1] = data
+        source[0,1:-1] = data[0,:]; source[0,0] = data[0,0]; source[0,-1] = data[0,-1]
+        source[-1,1:-1] = data[-1,:]; source[-1,0] = data[-1,0]; source[-1,-1] = data[-1,-1]
+        source[1:-1,0] = data[:,0]
+        source[1:-1,-1] = data[:,-1]
+
+        # To avoid displacement due to the padding
+        u += 0.5/data.shape[1]
+        v += 0.5/data.shape[0]
+        target = np.vstack((u.flatten()*data.shape[0], v.flatten()*data.shape[1]))
+
+        data = np.zeros((u.shape[0], u.shape[1], d))
+        for c in range(d):
+            map_coordinates(source[:,:,c], target, output=data[:,:,c].reshape(-1), cval=np.nan, order=order, prefilter=filter)
+        e.data = data
+
+        # Done
+        return e
+
+
     def __hash__(self):
         """Provide a hash of the environment map type and size.
         Warning: doesn't take into account the data, just the type,
@@ -228,7 +301,7 @@ class EnvironmentMap:
     def world2pixel(self, x, y, z):
         """Returns the (u, v) coordinates (in the interval defined by the MxN image)."""
 
-        # Get (u,v) in [-1, 1] interval
+        # Get (u,v) in [0, 1] interval
         u,v = self.world2image(x, y, z)
 
         # de-Normalize coordinates to interval defined by the MxN image
@@ -241,7 +314,7 @@ class EnvironmentMap:
     def pixel2world(self, u, v):
         """Returns the (x, y, z) coordinates for pixel cordinates (u,v)(in the interval defined by the MxN image)."""
 
-        # Normalize coordinates to [-1, 1] interval
+        # Normalize coordinates to [0, 1] interval
         u = (u+0.5) / self.data.shape[1]
         v = (v+0.5) / self.data.shape[0]
 
