@@ -53,16 +53,16 @@ def findBrightestSpot(image, minpct=99.99):
 
 def sunPosition_fromEnvmap(envmapInput):
     """
-    Finds the azimuth and elevation of the sun using the environnement map provided.
-    Returns a tuple containing (elevation, azimuth)
+    Finds the azimuth and zenith of the sun using the environnement map provided.
+    Returns a tuple containing (zenith, azimuth)
     """
     c = findBrightestSpot(envmapInput.data)
     u, v = (c[1]+0.5) / envmapInput.data.shape[1], (c[0]+0.5) / envmapInput.data.shape[0]
 
     azimuth = np.pi*(2*u - 1)
-    elevation = np.pi*v
+    zenith = np.pi*v
 
-    return elevation, azimuth
+    return zenith, azimuth
 
 
 def sunPosition_pySolar_zenithAzimuth(latitude, longitude, time, elevation=0):
@@ -83,7 +83,7 @@ def sunPosition_pySolar_zenithAzimuth(latitude, longitude, time, elevation=0):
 
     # Convert to radians
     azimuth = (np.pi/2) + np.deg2rad(-azimuth)
-    zenith = np.deg2rad(90-altitude) 
+    zenith = np.deg2rad(90 - altitude) 
 
     # Reset if degrees > 180
     if azimuth > np.pi: azimuth = azimuth - 2*np.pi
@@ -112,9 +112,9 @@ def sunPosition_pySolar_UV(latitude, longitude, time, elevation=0):
     azimuth = -(azimuth - (np.pi/2))
     
     # Convert to UV coordinates
-    u = (azimuth / (2*np.pi))
+    u = (azimuth/(2*np.pi))
     v = zenith/np.pi
-    return u,v
+    return u, v
 
 
 def sunPosition_pySolar_XYZ(latitude, longitude, time, elevation=0):
@@ -134,5 +134,5 @@ def sunPosition_pySolar_XYZ(latitude, longitude, time, elevation=0):
     )
   
     # Convert to world coordinates
-    x,y,z, _ = latlong2world(u,v)
-    return x,y,z
+    x, y, z, _ = latlong2world(u, v)
+    return x, y, z
