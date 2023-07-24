@@ -268,3 +268,23 @@ def test_interpolation_resize_discrete_values(format_):
         assert len(unique_2) > 0, f"Format {format_}: unique_2 is empty"
         for x in unique_2:
             assert x in unique_1 , f"Format {format_}: {x} was not in {unique_1}"
+            
+
+@pytest.mark.parametrize("format_,channels_", product(SUPPORTED_FORMATS, [1,3,4,5,7]))
+def test_setBackgroundColor(format_, channels_):
+    # Checks that the background color is correctly set
+    
+    # RGB
+    for s in [32,64,100,200,256,512]:
+        e_1 = EnvironmentMap(s, format_, channels=channels_)
+        initial_color = np.random.randint(0, 128)
+        e_1.data[:] = initial_color
+        sum_e_1 = e_1.data.sum()
+        
+        new_color=np.random.randint(129, 254)
+        _, _, _, valid = e_1.worldCoordinates()
+        sum_valid = np.invert(valid).sum() * e_1.data.shape[2] * (new_color - initial_color)
+        e_1 = e_1.setBackgroundColor(color=new_color, valid=valid)
+        
+        assert e_1.data.shape[2] == channels_
+        assert e_1.data.sum() == sum_e_1 + sum_valid   

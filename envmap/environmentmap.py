@@ -92,7 +92,7 @@ class EnvironmentMap:
                             'filename (str), an height (integer) or an image '
                             '(np.ndarray).')
 
-        self.backgroundColor = np.zeros(self.data.shape[-1])
+        self.backgroundColor = 0
         self.validate()
 
     def validate(self):
@@ -286,25 +286,22 @@ class EnvironmentMap:
 
         return self
 
-    def setBackgroundColor(self, color, valid=None):
+
+    def setBackgroundColor(self, color=None, valid=None):
         """Sets the area defined by ~valid to color."""
         if valid is None:
             _, _, _, valid = self.worldCoordinates()
 
-        assert valid.dtype == 'bool', "`valid` must be a boolean array."
-        assert valid.shape[:2] == self.data.shape[:2], "`valid` must be the same size as the EnvironmentMap."
+        assert valid.dtype == bool, "`valid` must be a boolean array."
+        assert valid.shape[:2] == self.data.shape[:2], f"`valid` shape[:2] ({valid.shape[:2]}) must be same as EnvironmentMap shape[:2] ({self.data.shape[:2]})."
 
-        self.backgroundColor = np.asarray(color)
-        if self.backgroundColor.size == 1 and self.data.shape[2] != self.backgroundColor.size:
-            self.backgroundColor = np.tile(self.backgroundColor, (self.data.shape[2],))
+        backgroundColor = self.backgroundColor if color is None else np.asarray(color)
+        assert self.data.shape[2] == backgroundColor.size or backgroundColor.size == 1, \
+            f"self.backgroundColor ({self.backgroundColor}) must be size 1 or match self.data.shape[2] ({self.data.shape[2]})."
 
-        assert self.data.shape[2] == self.backgroundColor.size, "Channel number mismatch when setting background color"
-
-        mask = np.invert(valid)
-        if mask.sum() > 0:
-            self.data[np.tile(mask[:,:,None], (1, 1, self.data.shape[2]))] = np.tile(self.backgroundColor, (mask.sum(),))
-
+        self.data[np.invert(valid)] = backgroundColor
         return self
+
 
     def convertTo(self, targetFormat, targetDim=None, order=1):
         """
