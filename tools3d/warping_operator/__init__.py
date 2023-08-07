@@ -18,7 +18,6 @@ def warpEnvironmentMap(environmentMap, nadir, order=1):
     https://dl.acm.org/doi/10.1145/3130800.3130891.
     """
     assert isinstance(environmentMap, envmap.EnvironmentMap)
-    assert environmentMap.format_ == 'latlong'
 
     global cachedWorldCoordinates
     if not environmentMap.data.shape in cachedWorldCoordinates:

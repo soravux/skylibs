@@ -8,8 +8,8 @@ The function `warpEnvironmentMap` is documented in the source code [here](__init
 
 ## Example usage
 
-The script `example_warping_operator.py` shows a fun example usage, where the camera moves from the far back to the far front of the environment map. First, have a panorama image ready, e.g. `pano.exr`. Then, run the script with:
+The script `example_warp_operator.py` shows a fun example usage, where the camera moves from the far back to the far front of the environment map. First, have a panorama image ready, e.g. `pano.exr`. Then, run the script with:
 
 ```bash
-python tools3d/warping_operator/example_warping_operator.py --environment 'pano.exr'
+python tools3d/warping_operator/example_warp_operator.py --environment 'pano.exr'
 ```
