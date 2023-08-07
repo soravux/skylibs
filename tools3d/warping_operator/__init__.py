@@ -4,8 +4,8 @@ import numpy as np
 cachedWorldCoordinates = {}
 def warpEnvironmentMap(environmentMap, nadir, order=1):
     """
-    Returns a warped copy of an environment map by simulating a camera translation along the z-axis
-    (the environment map is assumed to be spherical and occlusions are not taken into account).
+    Applies a warping operation to the environment map by simulating a camera translation along the z-axis
+    (the environment map is approximated by a sphere, thus occlusions are not taken into account).
     The translation amount is determined by the sinus of the nadir angle.
 
     :param envmap: Environment map to warp.
@@ -41,7 +41,7 @@ def warpEnvironmentMap(environmentMap, nadir, order=1):
     xDestination, yDestination, zDestination, _ = cachedWorldCoordinates[environmentMap.data.shape]
     xSource, ySource, zSource = warpCoordinates(xDestination, yDestination, zDestination, -np.sin(nadir))
     uSource, vSource = environmentMap.world2image(xSource, ySource, zSource)
-    destinationEnvmap = environmentMap.copy().interpolate(uSource, vSource, order=order)
+    environmentMap.interpolate(uSource, vSource, order=order)
 
-    return destinationEnvmap
+    return environmentMap
 

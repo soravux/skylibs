@@ -14,6 +14,7 @@ def main():
     parser = argparse.ArgumentParser(description='Creates a video of the warping of an environment map by simulating a translation of the camera along the z-axis.')
     parser.add_argument('--output_dir', type=str, default='output')
     parser.add_argument('--environment', type=str, help='Path to the environment map to warp (latlong format in exr format).', required=True)
+    parser.add_argument('--frames', type=int, default=60, help='Number of frames in the video.')
     args = parser.parse_args()
 
     originalEnvironmentMap = EnvironmentMap(args.environment, 'latlong')
@@ -21,11 +22,11 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     hdrScalingFactor = 0.5/np.mean(originalEnvironmentMap.data)
 
-    for i, nadir_deg in enumerate(np.linspace(-90, 90, 60)):
-        print(f'warping {i+1}/60')
+    for i, nadir_deg in enumerate(np.linspace(-90, 90, args.frames)):
+        print(f'warping {i+1}/{args.frames}')
 
         nadir = np.deg2rad(nadir_deg)
-        warpedEnvironmentMap = warpEnvironmentMap(originalEnvironmentMap, nadir)
+        warpedEnvironmentMap = warpEnvironmentMap(originalEnvironmentMap.copy(), nadir)
         hdrio.imsave(os.path.join(output_dir, f'warped_{i:05}_latlong.exr'), warpedEnvironmentMap.data.astype(np.float32))
         hdrio.imsave(os.path.join(output_dir, f'warped_{i:05}_latlong.png'), warpedEnvironmentMap.data*hdrScalingFactor)
 
@@ -41,7 +42,7 @@ def main():
     os.system(f'ffmpeg -y -r 30 -i {output_dir}/warped_%05d_forwardCrop.png -c:v libx264 -vf fps=30 -pix_fmt yuv420p {output_dir}/warped_crop.mp4')
 
     # remove intermediate files
-    for i in range(60):
+    for i in range(args.frames):
         os.remove(os.path.join(output_dir, f'warped_{i:05}_latlong.png'))
         os.remove(os.path.join(output_dir, f'warped_{i:05}_cube.png'))
         os.remove(os.path.join(output_dir, f'warped_{i:05}_forwardCrop.png'))

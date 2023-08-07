@@ -137,10 +137,13 @@ print(sh.coeffs)
 reconstruction = sh.reconstruct(height=64)
 ```
 
+### Warping operator
+
+The warping operator of [Gardner et al., 2017](https://dl.acm.org/doi/10.1145/3130800.3130891) is implemented in the function `tools3d.warping_operator.warpEnvironmentMap`. This allows to simulate a translation through an HDR environment map with unknown geometry by approximating it with a sphere. It can be used to relight 3D models from a different position than the camera position in the original panorama.
+
 ### hdrtools
 
 Tonemapping using `pfstools`.
-
 
 ## Changelog
 
