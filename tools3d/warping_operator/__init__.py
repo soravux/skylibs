@@ -20,8 +20,9 @@ def warpEnvironmentMap(environmentMap, nadir, order=1):
     assert isinstance(environmentMap, envmap.EnvironmentMap)
 
     global cachedWorldCoordinates
-    if not environmentMap.data.shape in cachedWorldCoordinates:
-        cachedWorldCoordinates[environmentMap.data.shape] = environmentMap.worldCoordinates()
+    cacheKey = (environmentMap.data.shape, environmentMap.format_)
+    if not cacheKey in cachedWorldCoordinates:
+        cachedWorldCoordinates[cacheKey] = environmentMap.worldCoordinates()
     
     def warpCoordinates(x, y, z, zOffset):
         """
@@ -37,7 +38,7 @@ def warpEnvironmentMap(environmentMap, nadir, order=1):
         t = -z * zOffset + np.sqrt(zOffset**2 * (z**2 - 1) + 1)
         return x * t, y * t, z * t + zOffset
 
-    xDestination, yDestination, zDestination, _ = cachedWorldCoordinates[environmentMap.data.shape]
+    xDestination, yDestination, zDestination, _ = cachedWorldCoordinates[cacheKey]
     xSource, ySource, zSource = warpCoordinates(xDestination, yDestination, zDestination, -np.sin(nadir))
     uSource, vSource = environmentMap.world2image(xSource, ySource, zSource)
     environmentMap.interpolate(uSource, vSource, order=order)
