@@ -123,23 +123,19 @@ Internal exr reader and writer, relies on `python-openexr`.
 - `NfromZ`: derivates the normals from a depth map `surf`.
 - `ZfromN`: Integrates a depth map from a normal map `normals`.
 - `display.plotDepth`: Creates a 3-subplot figure that shows the depth map `Z` and two side views.
-- `spharm.SphericalHarmonic` Spherical Harmonic Transform (uses `pyshtools`)
+- `spharm.SphericalHarmonic` Spherical Harmonic Transform (uses `pyshtools`).
 
+    Example usage of `spharm`:
+    ```
+    from envmap import EnvironmentMap
+    from tools3d import spharm
 
-Example usage of `spharm`:
-```
-from envmap import EnvironmentMap
-from tools3d import spharm
-
-e = EnvironmentMap('envmap.exr', 'latlong')
-sh = spharm.SphericalHarmonic(e)
-print(sh.coeffs)
-reconstruction = sh.reconstruct(height=64)
-```
-
-### Warping operator
-
-The warping operator of [Gardner et al., 2017](https://dl.acm.org/doi/10.1145/3130800.3130891) is implemented in the function `tools3d.warping_operator.warpEnvironmentMap`. This allows to simulate a translation through an HDR environment map with unknown geometry by approximating it with a sphere. It can be used to relight 3D models from a different position than the camera position in the original panorama.
+    e = EnvironmentMap('envmap.exr', 'latlong')
+    sh = spharm.SphericalHarmonic(e)
+    print(sh.coeffs)
+    reconstruction = sh.reconstruct(height=64)
+    ```
+- `warping_operator.warpEnvironmentMap`: The warping operator of [Gardner et al., 2017](https://dl.acm.org/doi/10.1145/3130800.3130891). See documentation [here](./tools3d/warping_operator/README.md).
 
 ### hdrtools
 
