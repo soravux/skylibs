@@ -39,7 +39,7 @@ def warpEnvironmentMap(environmentMap, nadir, order=1):
         return x * t, y * t, z * t + zOffset
 
     xDestination, yDestination, zDestination, _ = cachedWorldCoordinates[cacheKey]
-    xSource, ySource, zSource = warpCoordinates(xDestination, yDestination, zDestination, -np.sin(nadir))
+    xSource, ySource, zSource = warpCoordinates(xDestination, yDestination, zDestination, np.sin(nadir))
     uSource, vSource = environmentMap.world2image(xSource, ySource, zSource)
     environmentMap.interpolate(uSource, vSource, order=order)
 
