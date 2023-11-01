@@ -1,5 +1,4 @@
 import pytest
-import math
 import numpy as np
 
 from envmap import projections as t
@@ -113,3 +112,31 @@ def test_projections_image(format_):
 
     np.testing.assert_array_almost_equal(u[valid], u_[valid], decimal=5)
     np.testing.assert_array_almost_equal(v[valid], v_[valid], decimal=5)
+
+
+@pytest.mark.parametrize("calibration",
+    [
+        # ( ocam calibration dict, from 20150909_144054_stack.meta.xml )
+        ({
+            'height': 3840,
+            'width': 5760,
+            'F' : np.polynomial.polynomial.Polynomial(
+                np.array([-1283.8735,0,0.00035359,-1.2974e-07,6.7764e-11]),
+                domain=[-2895.3481,2895.3481],
+                window=[-2895.3481,2895.3481]
+            ),
+            'affine_3x3':np.array([[0.99981,0.00024371,1904.2826],[3.7633e-06, 1, 2895.3481],[0,0,1]]),
+        }),
+    ]
+)
+def test_ocam(calibration):
+
+    e = env.EnvironmentMap(64, 'skyangular', channels=2)
+    x,y,z, valid = e.worldCoordinates()
+
+    u_, v_ = t.world2ocam(x, y, z, calibration)
+    x_, y_, z_, V = t.ocam2world(u_, v_, calibration)
+
+    np.testing.assert_array_almost_equal(x[valid], x_[valid], decimal=3)
+    np.testing.assert_array_almost_equal(y[valid], y_[valid], decimal=3)
+    np.testing.assert_array_almost_equal(z[valid], z_[valid], decimal=3)
