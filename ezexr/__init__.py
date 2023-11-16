@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+import re
 
 from skylibs import __version__
 
@@ -13,7 +14,7 @@ except Exception as e:
     pass
 
 
-def imread(filename, bufferImage=None, rgb=True):
+def imread(filename, bufferImage=None, rgb=True, whitelisted_channels=None):
     """
     Read an .exr image and returns a numpy matrix or a dict of channels.
 
@@ -26,8 +27,9 @@ def imread(filename, bufferImage=None, rgb=True):
           If False: Returns all channels in a dict()
           If "hybrid": "<identifier>.[R|G|B|A|X|Y|Z]" -> merged to an image
                        Useful for Blender Cycles' output.
+    :whitelisted_channels: If not None, then it should be a list of channel names to read in Regex format, e.g. [r"<identifier1>\.V", r"<identifier2\.[RGB]>"].
+                           By default, all channels are read, which may be slower when using some compression formats (e.g. DWAA).
     """
-
     if 'OpenEXR' not in globals():
         print(">>> Install OpenEXR-Python with `conda install -c conda-forge openexr openexr-python`\n\n")
         raise Exception("Please Install OpenEXR-Python")
@@ -75,6 +77,9 @@ def imread(filename, bufferImage=None, rgb=True):
         data = {}
 
         for i, c in enumerate(header['channels']):
+            if whitelisted_channels is not None:
+                if not any([re.match(pattern, c) for pattern in whitelisted_channels]):
+                    continue
             dt = header['channels'][c].type
             data[c] = np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]).reshape((h, w))
 
