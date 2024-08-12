@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 from scipy.special import sph_harm
-from pyshtools import _SHTOOLS
+from pyshtools.backends import shtools
 
 from envmap import EnvironmentMap
 
@@ -37,7 +37,7 @@ class SphericalHarmonic:
 
         self.coeffs = []
         for i in range(self.spatial.data.shape[2]):
-            self.coeffs.append(_SHTOOLS.SHExpandDH(self.spatial.data[:,:,i], norm=norm, sampling=2, lmax_calc=max_l)[1])
+            self.coeffs.append(shtools.SHExpandDH(self.spatial.data[:,:,i], norm=norm, sampling=2, lmax_calc=max_l))
 
     def reconstruct(self, height=None, max_l=None, clamp_negative=True):
         """
@@ -47,7 +47,7 @@ class SphericalHarmonic:
 
         retval = []
         for i in range(len(self.coeffs)):
-            retval.append(_SHTOOLS.MakeGridDH(self.coeffs[i], norm=self.norm, sampling=2, lmax=height, lmax_calc=max_l)[1])
+            retval.append(shtools.MakeGridDH(self.coeffs[i], norm=self.norm, sampling=2, lmax=height, lmax_calc=max_l))
 
         retval = np.asarray(retval).transpose((1,2,0))
 
