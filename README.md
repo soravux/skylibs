@@ -143,6 +143,7 @@ Tonemapping using `pfstools`.
 
 ## Changelog
 
+- 0.7.5: Fixed spherical harmonics import with latest pyshtools, added spherical warping operator, added whitelist channels in `ezexr`.
 - 0.7.4: Fixed tools3d.spharm compatibility with latest pyshtools.
 - 0.7.3: Added vMF-based envmap blur functionality. `ezexr` does not print the number of channels on stdout.
 - 0.7.2: `ezexr.imwrite()` now orders correctly channels when > 10 are used.
