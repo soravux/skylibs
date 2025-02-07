@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import logical_and as land, logical_or as lor
 
+from .rotations import *
 
 def world2latlong(x, y, z):
     """Get the (u, v) coordinates of the point defined by (x, y, z) for
@@ -295,3 +296,114 @@ def cube2world(u, v):
         return x.item(), y.item(), z.item(), valid.item()
 
     return x, y, z, valid
+
+
+def ocam2world(u, v, ocam_calibration):
+    """ Project a point (u, v) in omnidirectional camera space to 
+    (x, y, z) point in world coordinate space."""
+
+    # Step 0. De-Normalize coordinates to interval defined by the MxN image
+    # Where u=cols(x),  v=rows(y)
+    width_cols = ocam_calibration['width']
+    height_rows = ocam_calibration['height']
+
+    v = np.floor(v*height_rows).astype(int)
+    u = np.floor(u*width_cols).astype(int)
+
+    # Step 1. Center & Skew correction
+    # M = affine matrix [c,d,xc; e,1,yc; 0,0,1]
+    # p' = M^-1 * (p)
+    M = ocam_calibration['affine_3x3']
+    F = ocam_calibration['F']
+
+    # Inverse: M_ = M^-1
+    M_ = np.linalg.inv(M)
+
+    # Affine transform
+    w = np.ones_like(u)
+    assert u.shape == v.shape
+    save_original_shape = u.shape
+    p_uvw = np.array((v.reshape(-1),u.reshape(-1),w.reshape(-1)))
+    p_xyz = np.matmul(M_,p_uvw)
+
+    # Add epsilon to mitigate NAN
+    p_xyz[ p_xyz==0 ] = np.finfo(p_xyz.dtype).eps
+
+    # Step 2. Get unit-sphere world coordinate z
+    # Distance to center of image: p = sqrt(X^2 + Y^2)
+    p_z = np.linalg.norm(p_xyz[0:2], axis=0)
+    # Convert to z-coordinate with p_z = F(p)
+    p_xyz[2] = F(p_z)
+
+    # Step 3. Normalize x,y,z to unit length of 1 (unit sphere)
+    p_xyz = p_xyz / np.linalg.norm(p_xyz, axis=0)
+
+    # Step 4. Fix coordinate system alignment 
+    # (rotate -90 degrees around z-axis)
+    # (x,y,z) -> (x,-z,y) as +y is up (not +z)
+    p_xyz = np.matmul(rotz(np.deg2rad(-90)),p_xyz)
+    x,y,z = (
+        p_xyz[0].reshape(save_original_shape),
+        -p_xyz[2].reshape(save_original_shape),
+        -p_xyz[1].reshape(save_original_shape)
+    )
+
+    valid = np.ones(x.shape, dtype='bool')
+    return x,y,z, valid
+
+
+def world2ocam(x, y, z, ocam_calibration):
+    """ Project a point (x, y, z) in world coordinate space to 
+    a (u, v) point in omnidirectional camera space."""
+
+    # Step 1. Center & Skew correction
+    # M = affine matrix [c,d; e,1]
+    # T = translation vector
+    # p' = M^-1 * (p - T)
+    M = ocam_calibration['affine_3x3']
+    F = ocam_calibration['F']
+
+    assert x.shape == y.shape and x.shape == z.shape, f'{x.shape} == {y.shape} == {z.shape}'
+    save_original_shape = x.shape
+
+    # Step 2. Fix coordinate system alignment
+    # (x,y,z) -> (x,z,-y) as +z is up (not +y)
+    p_xyz = np.array((x.reshape(-1),y.reshape(-1),-z.reshape(-1)))
+                      
+    # Add epsilon to mitigate NAN
+    p_xyz[ p_xyz==0 ] = np.finfo(p_xyz.dtype).eps
+                      
+    # (rotate 90 degrees around z-axis)
+    p_xyz = np.array((p_xyz[0], p_xyz[2], -p_xyz[1]))
+    p_xyz = np.matmul(rotz(np.deg2rad(90)),p_xyz)
+
+    # Step 3. 3D to 2D
+    m = p_xyz[2] / np.linalg.norm(p_xyz[0:2], axis=0)
+
+    def poly_inverse(y):
+        F_ = F.copy()
+        F_.coef[1] -=y
+        F_r = F_.roots()
+        F_r = F_r[ (F_r >= 0) & (F_r.imag == 0) ]
+        if len(F_r)>0:
+            return F_r[0].real
+        else:
+            return np.nan
+    m_ = np.vectorize(poly_inverse)(m)
+
+    uvw = p_xyz / np.linalg.norm(p_xyz[0:2], axis=0) * m_
+
+    # Step 4. Affine transform for center and skew
+    uvw[2,:] = 1
+    uvw = np.nan_to_num(uvw)
+    uvw = np.matmul(M, uvw)
+    u,v = uvw[1].reshape(save_original_shape), uvw[0].reshape(save_original_shape)
+
+    # Step 3. Normalize coordinates to interval [0,1]
+    # Where u=cols(x),  v=rows(y)
+    width_cols = ocam_calibration['width']
+    height_rows = ocam_calibration['height']
+    u = (u+0.5) / width_cols
+    v = (v+0.5) / height_rows
+
+    return u,v
