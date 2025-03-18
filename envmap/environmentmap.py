@@ -643,7 +643,7 @@ class EnvironmentMap:
 
         if mode == "mask":
             x, y, z, _ = self.worldCoordinates()
-            xy = np.sqrt( (x**2 + y**2) / (-x**2 - y**2 + 1) )
+            xy = np.sqrt( (x**2 + y**2) / np.maximum(-x**2 - y**2 + 1, 1e-10) )
             theta = np.arctan2(x, y)
             x = xy*np.sin(theta)
             y = xy*np.cos(theta)
