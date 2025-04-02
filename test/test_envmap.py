@@ -268,3 +268,13 @@ def test_interpolation_resize_discrete_values(format_):
         assert len(unique_2) > 0, f"Format {format_}: unique_2 is empty"
         for x in unique_2:
             assert x in unique_1 , f"Format {format_}: {x} was not in {unique_1}"
+
+
+@pytest.mark.parametrize("format_", SUPPORTED_FORMATS)
+def test_add_spherical_gaussian(format_):
+    for s in [32,64,100,200,256,512]:
+        e = EnvironmentMap(s, format_)
+        e.addSphericalGaussian((0,1,0), 0.2, (1, 0.5, 0.25))
+        u, v = e.world2pixel(0, 1, 0)
+        assert np.all(np.abs(e.data[v, u] - np.array((1, 0.5, 0.25))) < 1e-2)
+        assert np.all(np.max(np.nan_to_num(e.data), axis=(0, 1)) <= e.data[v, u])
