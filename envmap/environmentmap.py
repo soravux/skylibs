@@ -531,6 +531,25 @@ class EnvironmentMap:
         self.data = result.reshape((h, w, c))
         return self
 
+    def addSphericalGaussian(self, center, bandwidth, color):
+        """
+        Adds a spherical gaussian to the environment map.
+        `center` is the direction of the vector, represented by an x, y, z unit vector.
+        `bandwidth` is the scalar bandwidth of the gaussian.
+        `color` is the color of the gaussian.
+        """
+
+        x, y, z, _ = self.worldCoordinates()
+        xyz = np.dstack((x, y, z))
+
+        center = np.asarray(center, dtype=np.float32).reshape((1, 1, 3))
+        center /= np.linalg.norm(center)
+
+        color = np.asarray(color, dtype=np.float32).reshape((1, 1, self.data.shape[2]))
+        self.data += color * (np.exp(bandwidth * (np.sum(xyz * center, 2, keepdims=True) - 1)))
+
+        return self
+
     def embed(self, vfov, rotation_matrix, image, order=1):
         """
         Projects an image onto the environment map.

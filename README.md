@@ -69,7 +69,9 @@ Skylibs employs the following right-handed coordinates system: +X = right, +Y = 
 - `.setHemisphereValue(normal, value)`: sets all pixels visible from a surface with `normal` to `value`.
 - `.getMeanLightVectors(normals)`: compute the mean light vector of the environment map for the given normals.
 - `.project(vfov, rotation_matrix, ar, resolution, projection, mode)`: Extract a rectified image from the panorama, simulating a camera with field-of-view `vfov`, extrinsics `rotation_matrix`, aspect ratio `ar`, `resolution`.
-- `.embed(self, vfov, rotation_matrix, image)`: inverse of `project`, embeds an image in the environment map.
+- `.blur(kappa)`: Blurs the environment map. `kappa` >= 0 is the blur bandwidth, higher values are sharper.
+- `.addSphericalGaussian(center, bandwidth, color)`: Adds a spherical gaussian to the environment map, in the unit direction of `center` with a specified `bandwidth` and `color`.
+- `.embed(vfov, rotation_matrix, image)`: inverse of `project`, embeds an image in the environment map.
 - `.imageCoordinates()`: returns the (u, v) coordinates at each pixel center.
 - `.worldCoordinates()`: returns the (x, y, z, valid) world coordinates for each pixel center, with mask `valid` (anything outside this mask does not project to the world).
 - `.world2image(x, y, z)`: returns the (u, v) coordinates of the vector (x, y, z). Pixel coordinates can be obtained with `floor(u)` and `floor(v)`.
