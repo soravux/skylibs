@@ -61,7 +61,7 @@ def imread(filename, bufferImage=None, rgb=True, whitelisted_channels=None):
 
         if nc == 1:  # Greyscale
             cname = list(header['channels'].keys())[0]
-            data = np.fromstring(f.channel(cname), dtype=pixformat_mapping[dtGlobal.v]).reshape(h, w, 1)
+            data = np.frombuffer(f.channel(cname), dtype=pixformat_mapping[dtGlobal.v]).reshape(h, w, 1)
         else:
             assert 'R' in header['channels'] and 'G' in header['channels'] and 'B' in header['channels'], "Not a grayscale image, but no RGB data!"
             channelsToUse = ('R', 'G', 'B', 'A') if 'A' in header['channels'] else ('R', 'G', 'B')
@@ -70,9 +70,9 @@ def imread(filename, bufferImage=None, rgb=True, whitelisted_channels=None):
                 # Check the data type
                 dt = header['channels'][c].type
                 if dt.v != dtGlobal.v:
-                    data[:, :, i] = np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]).reshape((h, w)).astype(pixformat_mapping[dtGlobal.v])
+                    data[:, :, i] = np.frombuffer(f.channel(c), dtype=pixformat_mapping[dt.v]).reshape((h, w)).astype(pixformat_mapping[dtGlobal.v])
                 else:
-                    data[:, :, i] = np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]).reshape((h, w))
+                    data[:, :, i] = np.frombuffer(f.channel(c), dtype=pixformat_mapping[dt.v]).reshape((h, w))
     else:
         data = {}
 
@@ -81,7 +81,7 @@ def imread(filename, bufferImage=None, rgb=True, whitelisted_channels=None):
                 if not any([re.match(pattern, c) for pattern in whitelisted_channels]):
                     continue
             dt = header['channels'][c].type
-            data[c] = np.fromstring(f.channel(c), dtype=pixformat_mapping[dt.v]).reshape((h, w))
+            data[c] = np.frombuffer(f.channel(c), dtype=pixformat_mapping[dt.v]).reshape((h, w))
 
         if rgb == "hybrid":
             ordering = {key: i for i, key in enumerate("RGBAXYZ")}
@@ -196,9 +196,9 @@ def imwrite(filename, arr, **params):
 
     # Convert to strings
     if d == 1:
-        data = [ arr.astype(numpy_pixformat).tostring() ]
+        data = [ arr.astype(numpy_pixformat).tobytes() ]
     else:
-        data = [ arr[:,:,c].astype(numpy_pixformat).tostring() for c in range(d) ]
+        data = [ arr[:,:,c].astype(numpy_pixformat).tobytes() for c in range(d) ]
 
     outHeader = OpenEXR.Header(w, h)
     outHeader['compression'] = imath_compression        # Apply compression
