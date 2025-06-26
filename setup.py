@@ -18,5 +18,5 @@ setup(
     version=skylibs_module['__version__'],
     packages=['ezexr', 'envmap', 'hdrio', 'hdrtools', 'hdrtools/tonemapping', 'skydb', 'tools3d', 'tools3d/warping_operator', 'skylibs'],
     include_package_data=True,
-    install_requires=['imageio>=1.6', 'tqdm', 'numpy', 'scipy', 'scikit-image>=0.19', 'pysolar'],
+    install_requires=['imageio>=1.6', 'tqdm', 'numpy>=2', 'scipy>=1.12', 'scikit-image>=0.19', 'pysolar'],
 )
