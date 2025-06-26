@@ -145,6 +145,7 @@ Tonemapping using `pfstools`.
 
 ## Changelog
 
+- 0.7.7: Updated deprecated numpy function calls (Thanks Zitian!) and package configuration (Thank Ian!)
 - 0.7.6: Fixed division by zero in envmap projection's mask mode.
 - 0.7.5: Fixed spherical harmonics import with latest pyshtools, added spherical warping operator, added whitelist channels in `ezexr`.
 - 0.7.4: Fixed tools3d.spharm compatibility with latest pyshtools.
