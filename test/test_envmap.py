@@ -41,7 +41,7 @@ def test_imageCoordinates(format_):
     np.testing.assert_array_almost_equal(v[0,0], 1/s2/2, decimal=5)
 
 
-@pytest.mark.parametrize("envmap_type,in_sz,out_sz", product(SUPPORTED_FORMATS, [512, 431, 271], [512, 431, 271]))
+@pytest.mark.parametrize("envmap_type,in_sz,out_sz", list(product(SUPPORTED_FORMATS, [512, 431, 271], [512, 431, 271])))
 def test_resize_integer(envmap_type, in_sz, out_sz):
     e = get_envmap(in_sz, 1, envmap_type, 1)
     old_energy = e.data.mean()
@@ -52,7 +52,7 @@ def test_resize_integer(envmap_type, in_sz, out_sz):
     assert np.abs(new_energy/old_energy - 1.) < 5e-3
 
 
-@pytest.mark.parametrize("src_format,tgt_format", product(SUPPORTED_FORMATS, SUPPORTED_FORMATS))
+@pytest.mark.parametrize("src_format,tgt_format", list(product(SUPPORTED_FORMATS, SUPPORTED_FORMATS)))
 def test_convert(src_format, tgt_format):
     e_src = get_envmap(16, 6, src_format)
 
@@ -123,7 +123,7 @@ def test_project_embed(format_):
     # plt.subplot(143); plt.imshow(source); plt.title(format_)
     # plt.subplot(144); plt.imshow(np.abs(recovered - source)); plt.colorbar()
     # plt.show()
-    
+
     assert np.mean(np.abs(recovered - source)) < 1e-1
 
     # edges are not pixel-perfect, remove boundary for check
@@ -138,14 +138,14 @@ def test_project_embed(format_):
     assert np.max(np.abs(recovered - source)) < 0.15
 
 
-@pytest.mark.parametrize("format_,mode,colorspace", product(SUPPORTED_FORMATS, ["ITU BT.601", "ITU BT.709", "mean"], ["sRGB", "linear"]))
+@pytest.mark.parametrize("format_,mode,colorspace", list(product(SUPPORTED_FORMATS, ["ITU BT.601", "ITU BT.709", "mean"], ["sRGB", "linear"])))
 def test_intensity(format_, mode, colorspace):
     e = get_envmap(16, 6, format_, channels=3)
     e.toIntensity(mode=mode, colorspace=colorspace)
 
     assert e.data.shape[2] == 1
 
-@pytest.mark.parametrize("format_,normal,channels", product(SUPPORTED_FORMATS, [[0, 1, 0], [1, 0, 0], [0, 0, -1], [0.707, 0.707, 0], "rand"], [1, 3, 5, -3]))
+@pytest.mark.parametrize("format_,normal,channels", list(product(SUPPORTED_FORMATS, [[0, 1, 0], [1, 0, 0], [0, 0, -1], [0.707, 0.707, 0], "rand"], [1, 3, 5, -3])))
 def test_set_hemisphere(format_, normal, channels):
     if channels < 0:
         value = np.asarray(np.random.rand())
@@ -188,7 +188,7 @@ def test_set_hemisphere(format_, normal, channels):
     #     import pdb; pdb.set_trace()
 
 
-@pytest.mark.parametrize("format_,normal", product(SUPPORTED_FORMATS, [[0, 1, 0], [1, 0, 0], [0, 0, -1], [0.707, 0.707, 0], "rand"]))
+@pytest.mark.parametrize("format_,normal", list(product(SUPPORTED_FORMATS, [[0, 1, 0], [1, 0, 0], [0, 0, -1], [0.707, 0.707, 0], "rand"])))
 def test_worldCoordinates_list(format_, normal):
     e = EnvironmentMap(128, format_)
     if normal == "rand":
@@ -198,14 +198,14 @@ def test_worldCoordinates_list(format_, normal):
     u, v = e.world2image(*normal)
 
 
-@pytest.mark.parametrize("format_,normal", product(SUPPORTED_FORMATS, [[0, 1, 0],
+@pytest.mark.parametrize("format_,normal", list(product(SUPPORTED_FORMATS, [[0, 1, 0],
                                                                        [1, 0, 0],
                                                                        [0, 0, -1],
                                                                        [0.707, 0.707, 0],
                                                                        [[0.707, 0],
                                                                         [0.707, 0],
                                                                         [0, -1]],
-                                                                       "rand"]))
+                                                                       "rand"])))
 def test_worldCoordinates_ndarray(format_, normal):
     e = EnvironmentMap(128, format_)
     if normal == "rand":
@@ -216,7 +216,7 @@ def test_worldCoordinates_ndarray(format_, normal):
     u, v = e.world2image(*normal)
 
 
-@pytest.mark.parametrize("format_1, format_2", product(SUPPORTED_FORMATS, SUPPORTED_FORMATS))
+@pytest.mark.parametrize("format_1, format_2", list(product(SUPPORTED_FORMATS, SUPPORTED_FORMATS)))
 def test_interpolation_convertTo_discrete_values(format_1, format_2):
     # test interpolation order 0 (nearest neighbor)
 
@@ -224,7 +224,7 @@ def test_interpolation_convertTo_discrete_values(format_1, format_2):
     e_1 = EnvironmentMap(128, format_1)
     e_1.data = np.random.randint(0,512, size=e_1.data.shape)
     unique_1 = np.unique(e_1.data)
-        
+
     # convertTo()
     e_2 = e_1.convertTo(format_2, order=0)
     # e_2 contains nan values... ¯\_(ツ)_/¯
@@ -248,7 +248,7 @@ def test_interpolation_rotate_discrete_values(format_):
         dcm = rotations.roty(angle)
         e_2 = e_1.rotate(dcm, order=0)
 
-        unique_2 = np.unique(e_2.data) 
+        unique_2 = np.unique(e_2.data)
         assert len(unique_2) > 0, f"Format {format_}: unique_2 is empty"
         for x in unique_2:
             assert x in unique_1, f"Format {format_}: {x} was not in {unique_1}"

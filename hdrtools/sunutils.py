@@ -1,6 +1,5 @@
 import numpy as np
-import scipy, scipy.misc, scipy.ndimage, scipy.ndimage.filters
-import scipy.spatial, scipy.interpolate, scipy.spatial.distance
+import scipy, scipy.ndimage, scipy.ndimage.filters
 
 from pysolar import solar
 
@@ -76,14 +75,14 @@ def sunPosition_pySolar_zenithAzimuth(latitude, longitude, time, elevation=0):
     azimuth angle = north-based azimuth angles require offset (+90deg) and inversion (*-1) to measure clockwise
     thus, azimuth = (pi/2) - azimuth
     """
-    
+
     # Find azimuth and elevation from pySolar library.
     azimuth = solar.get_azimuth(latitude, longitude, time, elevation)
     altitude = solar.get_altitude(latitude, longitude, time, elevation)
 
     # Convert to radians
     azimuth = (np.pi/2) + np.deg2rad(-azimuth)
-    zenith = np.deg2rad(90 - altitude) 
+    zenith = np.deg2rad(90 - altitude)
 
     # Reset if degrees > 180
     if azimuth > np.pi: azimuth = azimuth - 2*np.pi
@@ -98,19 +97,19 @@ def sunPosition_pySolar_UV(latitude, longitude, time, elevation=0):
     Takes latitude (in degrees), longitude(in degrees) and a datetime object.
     Returns a tuple containing the (x, y, z) world coordinate.
 
-    Note, the validity (v) of the coordinate is not returned. 
+    Note, the validity (v) of the coordinate is not returned.
     Please check the coordinate in respect to your environment map.
     """
 
     zenith, azimuth = sunPosition_pySolar_zenithAzimuth(
-        latitude, longitude, 
-        time, 
+        latitude, longitude,
+        time,
         elevation
     )
-  
+
     # Fix orientation of azimuth
     azimuth = -(azimuth - (np.pi/2))
-    
+
     # Convert to UV coordinates
     u = (azimuth/(2*np.pi))
     v = zenith/np.pi
@@ -123,16 +122,16 @@ def sunPosition_pySolar_XYZ(latitude, longitude, time, elevation=0):
     Takes latitude (in degrees), longitude(in degrees) and a datetime object.
     Returns a tuple containing the (x, y, z) world coordinate.
 
-    Note, the validity (v) of the coordinate is not returned. 
+    Note, the validity (v) of the coordinate is not returned.
     Please check the coordinate in respect to your environment map.
     """
 
     u,v = sunPosition_pySolar_UV(
-        latitude, longitude, 
-        time, 
+        latitude, longitude,
+        time,
         elevation
     )
-  
+
     # Convert to world coordinates
     x, y, z, _ = latlong2world(u, v)
     return x, y, z
